@@ -1,0 +1,17 @@
+{
+	"name": "Monarch",
+	"title": "Data extracted from the Monarch database",
+	"description": "The goal of the Monarch Initiative is to integrate, align, and re-distribute cross-species gene, genotype, variant, disease, and phenotype information.",
+	"reference URL": "https://monarchinitiative.org/",
+	"version": "0.1",
+	"source files": [
+		{
+			"name":"mondo.owl",
+			"URL template":"http://purl.obolibrary.org/obo/mondo.owl",
+			"remote update frequency": {
+				"value": 0.03,
+				"units": "1/day"
+			}
+		}
+	]
+}
