@@ -2,6 +2,7 @@ setwd("~/Shared/Data-Science/Data-Source-Model-Repository/Monarch/scripts/")
 
 library(XML)
 library(parallel)
+library(jsonlite)
 
 ##
 mc.cores <- 55
@@ -84,14 +85,15 @@ crossId$id2 <- gsub("SCTID","SNOMEDCT",crossId$id2)
 crossId$id2 <- gsub("UMLS","MedGen",crossId$id2)
 crossId$id2 <- gsub("Orphanet","ORPHA",crossId$id2)
 crossId$id2 <- gsub("MEDGEN","MedGen",crossId$id2)
-crossId$id2 <- gsub("NCI Metathesaurus","NCIt",crossId$id2)
+# crossId$id2 <- gsub("NCI Metathesaurus","NCIt",crossId$id2)
 crossId$DB2 <- gsub(":.*","",crossId$id2)
 crossId$DB1 <- gsub(":.*","",crossId$id1)
 
 ######################################
 ## entryId
-entryId <- crossId[!duplicated(crossId$id1),c("DB1","id1")]
-names(entryId) <- c("DB","id")
+entryId <- nodesJson[c("id")]
+entryId$DB <- gsub(":.*","",entryId$id)
+entryId <- entryId[,c("DB","id")]
 entryId$definition <- nodesJson$def[match(entryId$id,nodesJson$id)]
 
 ######################################
@@ -114,6 +116,7 @@ parentId <- edgesJson[,c("sub","obj")]
 names(parentId) <- c("id","parent")
 parentId$DB <- gsub(":.*","",parentId$id)
 parentId$pDB <- gsub(":.*","",parentId$parent)
+parentId <- parentId[which(parentId$id %in% entryId$id & parentId$parent %in% entryId$id),]
 
 #######################################
 crossId$id1 <- gsub(".*:","",crossId$id1)
@@ -124,10 +127,10 @@ parentId$parent <- gsub(".*:","",parentId$parent)
 idNames$id <- gsub(".*:","",idNames$id)
 
 ############################
-Monarch_idNames <- idNames[,c("DB","id","name")]
+Monarch_idNames <- idNames[,c("DB","id","name","canonical")]
 Monarch_parentId <- parentId[,c("DB","id","pDB","parent")]
 Monarch_crossId <- crossId[,c("DB1","id1","DB2","id2")]
-Monarch_entryid <- entryId[,c("DB","id")]
+Monarch_entryId <- entryId[,c("DB","id","definition")]
 
 ############################
 toSave <- grep("^Monarch[_]", ls(), value=T)
@@ -148,6 +151,33 @@ for(f in toSave){
   )
 }
 
+## dgraph
+dgraph.entryId <- Monarch_entryId
+dgraph.entryId$db_id <- paste(dgraph.entryId$DB, dgraph.entryId$id, sep = ":")
+dgraph.entryId$pred <- c("is_def")
+dgraph.entryId <- dgraph.entryId[,c("db_id","pred","definition")]
+
+dgraph.crossId <- Monarch_crossId
+dgraph.crossId$db_id1 <- paste(dgraph.entryId$DB1, dgraph.entryId$id1, sep = ":")
+dgraph.crossId$db_id2 <- paste(dgraph.entryId$DB2, dgraph.entryId$id2, sep = ":")
+dgraph.crossId$pred <- c("xref")
+dgraph.crossId <- dgraph.crossId[,c("db_id1","pred","db_id2")]
+
+dgraph.idNames <- Monarch_idNames
+dgraph.idNames$db_id <- paste(dgraph.idNames$DB, dgraph.idNames$id, sep = ":")
+dgraph.idNames$pred <- c("term")
+dgraph.idNames <- dgraph.idNames[,c("db_id","pred","name")]
+
+dgraph.canonical <- Monarch_idNames[Monarch_idNames$canonical == TRUE,]
+dgraph.canonical$db_id <- paste(dgraph.canonical$DB, dgraph.canonical$id, sep = ":")
+dgraph.canonical$pred <- c("is_label")
+dgraph.canonical <- dgraph.canonical[,c("db_id","pred","canonical")]
+
+dgraph.parentId <- Monarch_parentId
+dgraph.parentId$db_id <- paste(dgraph.parentId$DB, dgraph.parentId$id, sep = ":")
+dgraph.parentId$pdb_id <- paste(dgraph.parentId$pDB, dgraph.parentId$parent, sep = ":")
+dgraph.parentId$pred <- c("is_a")
+dgraph.parentId <- dgraph.parentId[,c("db_id","pred","pdb_id")]
 
 
 
