@@ -3,6 +3,9 @@ setwd("~/Shared/Data-Science/Data-Source-Model-Repository/Monarch/scripts/")
 library(XML)
 library(parallel)
 library(jsonlite)
+library(rdflib)
+library(redland)
+source("../../00-Utils/df2rdf.R")
 
 ##
 mc.cores <- 55
@@ -72,7 +75,7 @@ edgesJson$sub <- gsub("NCIT","NCIt",edgesJson$sub)
 ######################################
 ## crossId
 crossId <- unique(nodesJson[,c("id","Xref")])
-crossIdList <- strsplit(crossId$Xref, split = ",")
+crossIdList <- strsplit(crossId$Xref, split = ", ")
 names(crossIdList) <- crossId$id
 crossId <- stack(crossIdList)
 names(crossId) <- c("id2","id1")
@@ -89,17 +92,38 @@ crossId$id2 <- gsub("MEDGEN","MedGen",crossId$id2)
 crossId$DB2 <- gsub(":.*","",crossId$id2)
 crossId$DB1 <- gsub(":.*","",crossId$id1)
 
+dgraph_crossId <- data.frame(subject = crossId$id1,
+                             predicate = "is_xref",
+                             object = crossId$id2,
+                             datatype = "URI",
+                             stringsAsFactors = F)
+
 ######################################
 ## entryId
 entryId <- nodesJson[c("id")]
 entryId$DB <- gsub(":.*","",entryId$id)
 entryId <- entryId[,c("DB","id")]
 entryId$definition <- nodesJson$def[match(entryId$id,nodesJson$id)]
+entryId$definition <- ifelse(entryId$definition == "NA",NA,entryId$definition)
+
+dgraph_entryId <- data.frame(subject = NA,
+                              predicate = "indication",
+                              object = c(nodesJson[["id"]],Monarch_crossId$id2),
+                              datatype = "URI",
+                              stringsAsFactors = FALSE
+)
+
+dgraph_definition <- data.frame(subject = entryId$id[is.na(entryId$definition) == FALSE],
+                             predicate = "is_definition",
+                             object = entryId$definition[is.na(entryId$definition) == FALSE],
+                             datatype = "string",
+                             stringsAsFactors = FALSE
+)
 
 ######################################
 ## idNames
 idNames <- unique(nodesJson[,c("id","name")])
-idNamesList <- strsplit(idNames$name, split = ",")
+idNamesList <- strsplit(idNames$name, split = ", ")
 names(idNamesList) <- idNames$id
 idNames <- stack(idNamesList)
 names(idNames) <- c("name","id")
@@ -108,7 +132,21 @@ lbl <- unique(nodesJson[,c("label","id")])
 ## 
 idNames <- rbind(idNames,setNames(lbl, nm = names(idNames)))
 idNames$DB <- gsub(":.*","",idNames$id)
+idNames <- idNames[!is.na(idNames$name),]
 idNames$canonical <- ifelse(idNames$name %in% lbl$label, TRUE, FALSE)
+
+dgraph_idNames <- data.frame(subject = idNames$id,
+                             predicate = "is_term",
+                             object = idNames$name,
+                             datatype = "string",
+                             stringsAsFactors = F)
+
+
+dgraph_canonical <- data.frame(subject = idNames$id[idNames$canonical],
+                               predicate = "is_label",
+                               object = idNames$name[idNames$canonical],
+                               datatype = "string",
+                               stringsAsFactors = F)
 
 ######################################
 ## parentId
@@ -117,6 +155,12 @@ names(parentId) <- c("id","parent")
 parentId$DB <- gsub(":.*","",parentId$id)
 parentId$pDB <- gsub(":.*","",parentId$parent)
 parentId <- parentId[which(parentId$id %in% entryId$id & parentId$parent %in% entryId$id),]
+
+dgraph_parentId <- data.frame(subject = parentId$id,
+                              predicate =  "is_a",
+                              object = parentId$parent,
+                              datatype = "URI",
+                              stringsAsFactors = F)
 
 #######################################
 crossId$id1 <- gsub(".*:","",crossId$id1)
@@ -133,6 +177,7 @@ Monarch_crossId <- crossId[,c("DB1","id1","DB2","id2")]
 Monarch_entryId <- entryId[,c("DB","id","definition")]
 
 ############################
+## Write tables
 toSave <- grep("^Monarch[_]", ls(), value=T)
 for(f in toSave){
   message(paste("Saving", f))
@@ -151,34 +196,18 @@ for(f in toSave){
   )
 }
 
-## dgraph
-dgraph.entryId <- Monarch_entryId
-dgraph.entryId$db_id <- paste(dgraph.entryId$DB, dgraph.entryId$id, sep = ":")
-dgraph.entryId$pred <- c("is_def")
-dgraph.entryId <- dgraph.entryId[,c("db_id","pred","definition")]
+#############################
+## Convert to rdf 
+toConvert <- grep("dgraph_",ls(),value = T)
+monarch.rdf <- do.call(rbind,
+                       lapply(toConvert,
+                          function(f){
+                            x <- df2rdf(x = get(f))
+                            return(x)
+                          })
+)
 
-dgraph.crossId <- Monarch_crossId
-dgraph.crossId$db_id1 <- paste(dgraph.entryId$DB1, dgraph.entryId$id1, sep = ":")
-dgraph.crossId$db_id2 <- paste(dgraph.entryId$DB2, dgraph.entryId$id2, sep = ":")
-dgraph.crossId$pred <- c("xref")
-dgraph.crossId <- dgraph.crossId[,c("db_id1","pred","db_id2")]
-
-dgraph.idNames <- Monarch_idNames
-dgraph.idNames$db_id <- paste(dgraph.idNames$DB, dgraph.idNames$id, sep = ":")
-dgraph.idNames$pred <- c("term")
-dgraph.idNames <- dgraph.idNames[,c("db_id","pred","name")]
-
-dgraph.canonical <- Monarch_idNames[Monarch_idNames$canonical == TRUE,]
-dgraph.canonical$db_id <- paste(dgraph.canonical$DB, dgraph.canonical$id, sep = ":")
-dgraph.canonical$pred <- c("is_label")
-dgraph.canonical <- dgraph.canonical[,c("db_id","pred","canonical")]
-
-dgraph.parentId <- Monarch_parentId
-dgraph.parentId$db_id <- paste(dgraph.parentId$DB, dgraph.parentId$id, sep = ":")
-dgraph.parentId$pdb_id <- paste(dgraph.parentId$pDB, dgraph.parentId$parent, sep = ":")
-dgraph.parentId$pred <- c("is_a")
-dgraph.parentId <- dgraph.parentId[,c("db_id","pred","pdb_id")]
-
+write.table(monarch.rdf,file = file.path(ddir,"monarch.rdf"),col.names = F, row.names = F, quote = F, sep = " ")
 
 
 # 
