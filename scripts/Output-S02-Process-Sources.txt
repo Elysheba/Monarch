@@ -1,0 +1,1000 @@
+> ######################################
+> ## crossId
+> crossId <- xref[xref$id %in% disease$descendants,]
+
+> names(crossId) <- c("dbid1","dbid2")
+
+> crossId$dbid1 <- as.character(crossId$dbid1)
+
+> crossId$dbid2 <- as.character(crossId$dbid2)
+
+> table(gsub(":.*","",crossId$dbid2))
+
+                  COHD                    CSP                     DC                  DERMO                   DOID 
+                  1598                     39                    151                      1                   8656 
+                   EFO                     EV                   GARD                    GTR                     HP 
+                  2244                      2                   2828                      1                    509 
+                 https                  ICD10                   ICD9                 ICD9CM                ICDCM10 
+                     1                  11445                   2812                      7                      2 
+                   IDO            IDO_0000436                   KEGG                 MedDRA                 MEDDRA 
+                     1                      1                     37                   1474                      1 
+                MEDGEN                   MeSH                   MESH                  MFOMD                     MP 
+                     2                      1                   8172                      3                      4 
+                   MTH                    NCI      NCI_Metathesaurus                   NCiT                   NCIT 
+                     1                      2                      1                      1                   5528 
+                 NDFRT                 NIFSTD                    OBI                    obo                   OGMS 
+                     1                     18                      1                      1                      2 
+                  OMIM                 OMIMPS                   ORDO               Orphanet            Orphanet107 
+                  7992                    368                      1                   8992                      1 
+           Orphanet727          Orphanet99408                   PMID                  SCTID        SCTID_2010_1_31 
+                     1                      1                     11                   6948                     16 
+SNOMEDCT_US_2016_03_01              SNOWMEDCT                   UMLS               UMLS_CUI                UniProt 
+                     4                      1                  18600                      2                      1 
+              Wikidata              Wikipedia 
+                     2                     83 
+
+> table(gsub(":.*","",crossId$dbid1))
+
+MONDO 
+88572 
+
+> dim(crossId)
+[1] 88572     2
+
+> crossId <- crossId[!(grepl("#",crossId$dbid1) | grepl("#",crossId$dbid2)),]
+
+> dim(crossId)
+[1] 88570     2
+
+> crossId$DB2 <- gsub(":.*","",crossId$dbid2)
+
+> crossId$DB1 <- gsub(":.*","",crossId$dbid1)
+
+> crossId$id2 <- gsub(".*:","",crossId$dbid2)
+
+> crossId$id1 <- gsub(".*:","",crossId$dbid1)
+
+> ## Remove crossIds without a colon (e.g. definitions, ...)
+> head(grep(":",crossId$dbid1,invert = T,value = T))
+character(0)
+
+> head(grep(":",crossId$dbid2,invert = T,value = T))
+[1] "Orphanet99408" "Orphanet727"   "Orphanet107"   "IDO_0000436"  
+
+> crossId <- crossId[grepl(":",crossId$dbid2) & grepl(":",crossId$dbid1) ,]
+
+> dim(crossId)
+[1] 88566     6
+
+> ## Remove crossids with colon and space ": "
+> head(grep(": ",crossId$dbid2,value = T))
+character(0)
+
+> head(grep(": ",crossId$dbid1,value = T))
+character(0)
+
+> crossId <- crossId[grep(": ",crossId$dbid2,invert = T),]
+
+> dim(crossId)
+[1] 88566     6
+
+> ##
+> ## an integer is a correct disease ID
+> table(!is.na(as.numeric(crossId$id2)))
+
+FALSE  TRUE 
+43933 44633 
+
+> table(!is.na(as.numeric(crossId$id1)))
+
+ TRUE 
+88566 
+
+> toKeep <- crossId[which(!is.na(as.numeric(crossId$id2)) &
++                           !is.na(as.numeric(crossId$id1))),]
+
+> dim(toKeep)
+[1] 44633     6
+
+> toCheck <- crossId[-which(!is.na(as.numeric(crossId$id2)) &
++                             !is.na(as.numeric(crossId$id1))),]
+
+> dim(toCheck)
+[1] 43933     6
+
+> ## When removing prefix, an integer is a correct disease ID
+> table(!is.na(as.numeric(sub("^[^[:digit:]]*", "", toCheck$id2))))
+
+FALSE  TRUE 
+  289 43644 
+
+> table(!is.na(as.numeric(sub("^[^[:digit:]]*", "", toCheck$id1))))
+
+ TRUE 
+43933 
+
+> toKeep <- rbind(toKeep, 
++                 toCheck[which(!is.na(as.numeric(sub("^[^[:digit:]]*", "", toCheck$id2))) &
++                              .... [TRUNCATED] 
+
+> dim(toKeep)
+[1] 88277     6
+
+> toCheck <- toCheck[-which(!is.na(as.numeric(sub("^[^[:digit:]]*", "", toCheck$id2))) &
++                             !is.na(as.numeric(sub("^[^[:dig ..." ... [TRUNCATED] 
+
+> dim(toCheck)
+[1] 289   6
+
+> ## Remove any DBs that are not disease DBs and DB1 can only be "EFO" or "Orphanet"
+> ## check wrong IDs, remove weird ones still
+> table(toCheck$DB2 .... [TRUNCATED] 
+
+      CSP     https     ICD10      ICD9      MESH      UMLS Wikipedia 
+       39         1       132        31         4         1        81 
+
+> table(toCheck$DB1)
+
+MONDO 
+  289 
+
+> toCheck[toCheck$DB2 == "CSP",]
+              dbid1         dbid2 DB2   DB1       id2     id1
+240   MONDO:0001657 CSP:2006-2736 CSP MONDO 2006-2736 0001657
+1721  MONDO:0002901 CSP:0440-3703 CSP MONDO 0440-3703 0002901
+3128  MONDO:0001505 CSP:1754-6978 CSP MONDO 1754-6978 0001505
+3206  MONDO:0001569 CSP:2012-6947 CSP MONDO 2012-6947 0001569
+3983  MONDO:0002806 CSP:2017-6052 CSP MONDO 2017-6052 0002806
+6543  MONDO:0001478 CSP:1116-1678 CSP MONDO 1116-1678 0001478
+7735  MONDO:0003996 CSP:2057-3403 CSP MONDO 2057-3403 0003996
+7895  MONDO:0001300 CSP:2049-9000 CSP MONDO 2049-9000 0001300
+7896  MONDO:0001300 CSP:2042-2001 CSP MONDO 2042-2001 0001300
+10927 MONDO:0001256 CSP:0571-2717 CSP MONDO 0571-2717 0001256
+12975 MONDO:0003781 CSP:2596-1500 CSP MONDO 2596-1500 0003781
+15954 MONDO:0004993 CSP:2000-1867 CSP MONDO 2000-1867 0004993
+16456 MONDO:0004970 CSP:2000-0386 CSP MONDO 2000-0386 0004970
+17336 MONDO:0001020 CSP:1114-9655 CSP MONDO 1114-9655 0001020
+18207 MONDO:0002277 CSP:0571-2299 CSP MONDO 0571-2299 0002277
+18564 MONDO:0003540 CSP:2004-1600 CSP MONDO 2004-1600 0003540
+18565 MONDO:0003540 CSP:2004-1803 CSP MONDO 2004-1803 0003540
+22721 MONDO:0010481 CSP:2716-7007 CSP MONDO 2716-7007 0010481
+31856 MONDO:0000709 CSP:1248-5305 CSP MONDO 1248-5305 0000709
+35791 MONDO:0001882 CSP:3045-9976 CSP MONDO 3045-9976 0001882
+37541 MONDO:0011284 CSP:1116-1831 CSP MONDO 1116-1831 0011284
+39851 MONDO:0006497 CSP:0723-4729 CSP MONDO 0723-4729 0006497
+41407 MONDO:0006523 CSP:4008-0032 CSP MONDO 4008-0032 0006523
+42192 MONDO:0007896 CSP:2004-2820 CSP MONDO 2004-2820 0007896
+51471 MONDO:0019507 CSP:0828-0533 CSP MONDO 0828-0533 0019507
+60724 MONDO:0020108 CSP:0427-1178 CSP MONDO 0427-1178 0020108
+62290 MONDO:0007064 CSP:1560-6660 CSP MONDO 1560-6660 0007064
+68227 MONDO:0002129 CSP:2019-1041 CSP MONDO 2019-1041 0002129
+71364 MONDO:0017979 CSP:1560-5548 CSP MONDO 1560-5548 0017979
+74591 MONDO:0003143 CSP:2007-0683 CSP MONDO 2007-0683 0003143
+74727 MONDO:0016466 CSP:2596-4484 CSP MONDO 2596-4484 0016466
+77682 MONDO:0005672 CSP:1988-4119 CSP MONDO 1988-4119 0005672
+79237 MONDO:0005654 CSP:1248-7284 CSP MONDO 1248-7284 0005654
+79258 MONDO:0005657 CSP:1988-4002 CSP MONDO 1988-4002 0005657
+84373 MONDO:0005498 CSP:5000-0060 CSP MONDO 5000-0060 0005498
+85974 MONDO:0006653 CSP:2596-4484 CSP MONDO 2596-4484 0006653
+86008 MONDO:0006651 CSP:1114-9593 CSP MONDO 1114-9593 0006651
+86792 MONDO:0006644 CSP:1754-7677 CSP MONDO 1754-7677 0006644
+87619 MONDO:0005341 CSP:2000-2719 CSP MONDO 2000-2719 0005341
+
+> toCheck[toCheck$DB2 == "https",]
+              dbid1                                           dbid2   DB2   DB1                                       id2
+64314 MONDO:0007028 https://en.wikipedia.org/wiki/Rotator_cuff_tear https MONDO //en.wikipedia.org/wiki/Rotator_cuff_tear
+          id1
+64314 0007028
+
+> toCheck[toCheck$DB2 == "ICD10",]
+              dbid1         dbid2   DB2   DB1     id2     id1
+1494  MONDO:0002932 ICD10:H10-H11 ICD10 MONDO H10-H11 0002932
+1863  MONDO:0011057 ICD10:I60-I69 ICD10 MONDO I60-I69 0011057
+3188  MONDO:0001563  ICD10:H93.3X ICD10 MONDO  H93.3X 0001563
+5149  MONDO:0002776 ICD10:H60-H62 ICD10 MONDO H60-H62 0002776
+7406  MONDO:0002657 ICD10:N60-N65 ICD10 MONDO N60-N65 0002657
+9892  MONDO:0003832 ICD10:D80-D89 ICD10 MONDO D80-D89 0003832
+13241 MONDO:0002467 ICD10:H80-H83 ICD10 MONDO H80-H83 0002467
+13604 MONDO:0002428 ICD10:B50-B64 ICD10 MONDO B50-B64 0002428
+14050 MONDO:0001176 ICD10:H25-H28 ICD10 MONDO H25-H28 0001176
+15891 MONDO:0003664 ICD10:D55-D59 ICD10 MONDO D55-D59 0003664
+19828 MONDO:0003571  ICD10:H83.2X ICD10 MONDO  H83.2X 0003571
+19834 MONDO:0003571 ICD10:H83.2X9 ICD10 MONDO H83.2X9 0003571
+20822 MONDO:0010523  ICD10:L99.0* ICD10 MONDO  L99.0* 0010523
+20825 MONDO:0010523  ICD10:E85.0+ ICD10 MONDO  E85.0+ 0010523
+26679 MONDO:0000922 ICD10:N70-N77 ICD10 MONDO N70-N77 0000922
+27387 MONDO:0009303  ICD10:M31.0+ ICD10 MONDO  M31.0+ 0009303
+27396 MONDO:0009303  ICD10:N08.5* ICD10 MONDO  N08.5* 0009303
+30193 MONDO:0000916 ICD10:A00-A09 ICD10 MONDO A00-A09 0000916
+35387 MONDO:0009066  ICD10:E72.0+ ICD10 MONDO  E72.0+ 0009066
+35388 MONDO:0009066  ICD10:N16.3* ICD10 MONDO  N16.3* 0009066
+36253 MONDO:0012521  ICD10:B00.4+ ICD10 MONDO  B00.4+ 0012521
+36256 MONDO:0012521  ICD10:G05.1* ICD10 MONDO  G05.1* 0012521
+37338 MONDO:0001815 ICD10:G20-G26 ICD10 MONDO G20-G26 0001815
+40230 MONDO:0018467  ICD10:E72.0+ ICD10 MONDO  E72.0+ 0018467
+40232 MONDO:0018467  ICD10:N16.3* ICD10 MONDO  N16.3* 0018467
+40343 MONDO:0005154 ICD10:K70-K77 ICD10 MONDO K70-K77 0005154
+42342 MONDO:0017206   ICD10:C85,7 ICD10 MONDO   C85,7 0017206
+42886 MONDO:0005041 ICD10:H40-H42 ICD10 MONDO H40-H42 0005041
+42905 MONDO:0005044 ICD10:I10-I15 ICD10 MONDO I10-I15 0005044
+43709 MONDO:0005087 ICD10:J96-J99 ICD10 MONDO J96-J99 0005087
+44142 MONDO:0005071 ICD10:G00-G99 ICD10 MONDO G00-G99 0005071
+45168 MONDO:0005109 ICD10:B20-B20 ICD10 MONDO B20-B20 0005109
+45838 MONDO:0020554  ICD10:E83.1+ ICD10 MONDO  E83.1+ 0020554
+45840 MONDO:0020554  ICD10:J99.8* ICD10 MONDO  J99.8* 0020554
+45849 MONDO:0020553  ICD10:E83.1+ ICD10 MONDO  E83.1+ 0020553
+45852 MONDO:0020553  ICD10:J99.8* ICD10 MONDO  J99.8* 0020553
+45920 MONDO:0020548    ICD10:L12+ ICD10 MONDO    L12+ 0020548
+45921 MONDO:0020548  ICD10:H13.3* ICD10 MONDO  H13.3* 0020548
+47728 MONDO:0005015 ICD10:E08-E13 ICD10 MONDO E08-E13 0005015
+47792 MONDO:0005010 ICD10:I20-I25 ICD10 MONDO I20-I25 0005010
+49149 MONDO:0019441  ICD10:E85.4+ ICD10 MONDO  E85.4+ 0019441
+49152 MONDO:0019441  ICD10:I43.1* ICD10 MONDO  I43.1* 0019441
+49400 MONDO:0019436  ICD10:L40.5+ ICD10 MONDO  L40.5+ 0019436
+49401 MONDO:0019436  ICD10:M09.0* ICD10 MONDO  M09.0* 0019436
+49712 MONDO:0019496   ICD10:D3A.8 ICD10 MONDO   D3A.8 0019496
+51572 MONDO:0018081  ICD10:A98.5+ ICD10 MONDO  A98.5+ 0018081
+51575 MONDO:0018081  ICD10:N08.0* ICD10 MONDO  N08.0* 0018081
+52019 MONDO:0018059    ICD10:G01* ICD10 MONDO    G01* 0018059
+52029 MONDO:0018059  ICD10:A39.0+ ICD10 MONDO  A39.0+ 0018059
+52040 MONDO:0019386  ICD10:B06.0+ ICD10 MONDO  B06.0+ 0019386
+52041 MONDO:0019386  ICD10:G05.1* ICD10 MONDO  G05.1* 0019386
+52123 MONDO:0018099  ICD10:M14.8* ICD10 MONDO  M14.8* 0018099
+52126 MONDO:0018099  ICD10:K90.8+ ICD10 MONDO  K90.8+ 0018099
+52200 MONDO:0006015  ICD10:E35.1* ICD10 MONDO  E35.1* 0006015
+52201 MONDO:0006015  ICD10:A39.1+ ICD10 MONDO  A39.1+ 0006015
+52409 MONDO:0019338 ICD10:D80-D89 ICD10 MONDO D80-D89 0019338
+55544 MONDO:0007297  ICD10:E85.4+ ICD10 MONDO  E85.4+ 0007297
+55546 MONDO:0007297  ICD10:I68.0* ICD10 MONDO  I68.0* 0007297
+56343 MONDO:0009867  ICD10:G73.6* ICD10 MONDO  G73.6* 0009867
+56344 MONDO:0009867  ICD10:E74.0+ ICD10 MONDO  E74.0+ 0009867
+57306 MONDO:0007254 ICD10:C50-C50 ICD10 MONDO C50-C50 0007254
+59639 MONDO:0007100  ICD10:E85.1+ ICD10 MONDO  E85.1+ 0007100
+59645 MONDO:0007100  ICD10:G63.3* ICD10 MONDO  G63.3* 0007100
+59654 MONDO:0007101  ICD10:L99.0* ICD10 MONDO  L99.0* 0007101
+59659 MONDO:0007101  ICD10:E85.4+ ICD10 MONDO  E85.4+ 0007101
+60803 MONDO:0019121    ICD10:B59+ ICD10 MONDO    B59+ 0019121
+60811 MONDO:0019121  ICD10:J17.3* ICD10 MONDO  J17.3* 0019121
+61785 MONDO:0010826   ICD10:G40.A ICD10 MONDO   G40.A 0010826
+63306 MONDO:0007098  ICD10:E85.4+ ICD10 MONDO  E85.4+ 0007098
+63309 MONDO:0007098  ICD10:I68.0* ICD10 MONDO  I68.0* 0007098
+64055 MONDO:0008306  ICD10:I68.0* ICD10 MONDO  I68.0* 0008306
+64058 MONDO:0008306  ICD10:E85.4+ ICD10 MONDO  E85.4+ 0008306
+65331 MONDO:0008346  ICD10:E83.1+ ICD10 MONDO  E83.1+ 0008346
+65342 MONDO:0008346  ICD10:J99.8* ICD10 MONDO  J99.8* 0008346
+67613 MONDO:0015455  ICD10:H13.1* ICD10 MONDO  H13.1* 0015455
+67615 MONDO:0015455  ICD10:A54.3+ ICD10 MONDO  A54.3+ 0015455
+68472 MONDO:0017906  ICD10:E85.4+ ICD10 MONDO  E85.4+ 0017906
+68474 MONDO:0017906  ICD10:L99.0* ICD10 MONDO  L99.0* 0017906
+68568 MONDO:0004600   ICD10:C93.Z ICD10 MONDO   C93.Z 0004600
+68572 MONDO:0004600  ICD10:C93.Z0 ICD10 MONDO  C93.Z0 0004600
+69390 MONDO:0002041 ICD10:B35-B49 ICD10 MONDO B35-B49 0002041
+70056 MONDO:0017949  ICD10:E85.4+ ICD10 MONDO  E85.4+ 0017949
+70058 MONDO:0017949  ICD10:I68.0* ICD10 MONDO  I68.0* 0017949
+70346 MONDO:0017945  ICD10:I68.0* ICD10 MONDO  I68.0* 0017945
+70347 MONDO:0017945  ICD10:E85.4+ ICD10 MONDO  E85.4+ 0017945
+70351 MONDO:0017946  ICD10:I68.0* ICD10 MONDO  I68.0* 0017946
+70353 MONDO:0017946  ICD10:E85.4+ ICD10 MONDO  E85.4+ 0017946
+70356 MONDO:0017947  ICD10:I68.0* ICD10 MONDO  I68.0* 0017947
+70357 MONDO:0017947  ICD10:E85.4+ ICD10 MONDO  E85.4+ 0017947
+70361 MONDO:0017948  ICD10:I68.0* ICD10 MONDO  I68.0* 0017948
+70362 MONDO:0017948  ICD10:E85.4+ ICD10 MONDO  E85.4+ 0017948
+70476 MONDO:0004612   ICD10:C96.A ICD10 MONDO   C96.A 0004612
+70822 MONDO:0004671 ICD10:D00-D09 ICD10 MONDO D00-D09 0004671
+71010 MONDO:0002025 ICD10:F99-F99 ICD10 MONDO F99-F99 0002025
+71535 MONDO:0004664 ICD10:B65-B83 ICD10 MONDO B65-B83 0004664
+71687 MONDO:0015303  ICD10:L99.0* ICD10 MONDO  L99.0* 0015303
+71689 MONDO:0015303  ICD10:E85.4+ ICD10 MONDO  E85.4+ 0015303
+71692 MONDO:0015302  ICD10:E85.4+ ICD10 MONDO  E85.4+ 0015302
+71697 MONDO:0015302  ICD10:L99.0* ICD10 MONDO  L99.0* 0015302
+71702 MONDO:0015301  ICD10:E85.4+ ICD10 MONDO  E85.4+ 0015301
+71708 MONDO:0015301  ICD10:L99.0* ICD10 MONDO  L99.0* 0015301
+72236 MONDO:0015243  ICD10:J99.8* ICD10 MONDO  J99.8* 0015243
+72237 MONDO:0015243  ICD10:B44.1+ ICD10 MONDO  B44.1+ 0015243
+72338 MONDO:0003240 ICD10:E00-E07 ICD10 MONDO E00-E07 0003240
+72734 MONDO:0015288  ICD10:B00.5+ ICD10 MONDO  B00.5+ 0015288
+72738 MONDO:0015288  ICD10:H19.1* ICD10 MONDO  H19.1* 0015288
+73351 MONDO:0017814   ICD10:C85,7 ICD10 MONDO   C85,7 0017814
+73421 MONDO:0005836 ICD10:C60-C63 ICD10 MONDO C60-C63 0005836
+73632 MONDO:0017879  ICD10:J17.1* ICD10 MONDO  J17.1* 0017879
+73634 MONDO:0017879  ICD10:B33.4+ ICD10 MONDO  B33.4+ 0017879
+75272 MONDO:0017767 ICD10:I00-I02 ICD10 MONDO I00-I02 0017767
+78225 MONDO:0015033  ICD10:I68.0* ICD10 MONDO  I68.0* 0015033
+78228 MONDO:0015033  ICD10:E85.4+ ICD10 MONDO  E85.4+ 0015033
+78751 MONDO:0006939 ICD10:N10-N16 ICD10 MONDO N10-N16 0006939
+79513 MONDO:0005620  ICD10:E85.4+ ICD10 MONDO  E85.4+ 0005620
+79519 MONDO:0005620  ICD10:I68.0* ICD10 MONDO  I68.0* 0005620
+79873 MONDO:0017606  ICD10:B02.2+ ICD10 MONDO  B02.2+ 0017606
+79874 MONDO:0017606  ICD10:G53.0* ICD10 MONDO  G53.0* 0017606
+79929 MONDO:0005629  ICD10:H19.2* ICD10 MONDO  H19.2* 0005629
+79932 MONDO:0005629  ICD10:B60.1+ ICD10 MONDO  B60.1+ 0005629
+80210 MONDO:0005569 ICD10:M91-M94 ICD10 MONDO M91-M94 0005569
+81099 MONDO:0018856  ICD10:E85.4+ ICD10 MONDO  E85.4+ 0018856
+81101 MONDO:0018856  ICD10:L99.0* ICD10 MONDO  L99.0* 0018856
+81740 MONDO:0006816 ICD10:M00-M02 ICD10 MONDO M00-M02 0006816
+83308 MONDO:0018695   ICD10:J09.X ICD10 MONDO   J09.X 0018695
+85374 MONDO:0018591  ICD10:I68.0* ICD10 MONDO  I68.0* 0018591
+85375 MONDO:0018591  ICD10:E85.4+ ICD10 MONDO  E85.4+ 0018591
+86078 MONDO:0019977  ICD10:F02.3* ICD10 MONDO  F02.3* 0019977
+86080 MONDO:0019977    ICD10:G20+ ICD10 MONDO    G20+ 0019977
+86200 MONDO:0005336 ICD10:M60-M63 ICD10 MONDO M60-M63 0005336
+86281 MONDO:0004001  ICD10:T79.A0 ICD10 MONDO  T79.A0 0004001
+87335 MONDO:0005371 ICD10:F30-F39 ICD10 MONDO F30-F39 0005371
+
+> toCheck[toCheck$DB2 == "ICD9",]
+              dbid1           dbid2  DB2   DB1        id2     id1
+1862  MONDO:0011057 ICD9:430-438.99 ICD9 MONDO 430-438.99 0011057
+7404  MONDO:0002657 ICD9:610-612.99 ICD9 MONDO 610-612.99 0002657
+14725 MONDO:0003620 ICD9:350-359.99 ICD9 MONDO 350-359.99 0003620
+15842 MONDO:0004995 ICD9:390-459.99 ICD9 MONDO 390-459.99 0004995
+15844 MONDO:0004995 ICD9:420-429.99 ICD9 MONDO 420-429.99 0004995
+26680 MONDO:0000922 ICD9:614-616.99 ICD9 MONDO 614-616.99 0000922
+30192 MONDO:0000916 ICD9:001-009.99 ICD9 MONDO 001-009.99 0000916
+39864 MONDO:0005165 ICD9:210-229.99 ICD9 MONDO 210-229.99 0005165
+42902 MONDO:0005044 ICD9:401-405.99 ICD9 MONDO 401-405.99 0005044
+43254 MONDO:0005020 ICD9:570-579.99 ICD9 MONDO 570-579.99 0005020
+43255 MONDO:0005020 ICD9:520-579.99 ICD9 MONDO 520-579.99 0005020
+43257 MONDO:0005020 ICD9:560-569.99 ICD9 MONDO 560-569.99 0005020
+43687 MONDO:0005087 ICD9:510-519.99 ICD9 MONDO 510-519.99 0005087
+43690 MONDO:0005087 ICD9:500-508.99 ICD9 MONDO 500-508.99 0005087
+43699 MONDO:0005087 ICD9:460-519.99 ICD9 MONDO 460-519.99 0005087
+43739 MONDO:0005084 ICD9:290-299.99 ICD9 MONDO 290-299.99 0005084
+44151 MONDO:0005070 ICD9:140-239.99 ICD9 MONDO 140-239.99 0005070
+45170 MONDO:0005109 ICD9:042-042.99 ICD9 MONDO 042-042.99 0005109
+45181 MONDO:0005108 ICD9:060-066.99 ICD9 MONDO 060-066.99 0005108
+47477 MONDO:0005002 ICD9:490-496.99 ICD9 MONDO 490-496.99 0005002
+47779 MONDO:0005010 ICD9:410-414.99 ICD9 MONDO 410-414.99 0005010
+49723 MONDO:0019496 ICD9:209-209.99 ICD9 MONDO 209-209.99 0019496
+69393 MONDO:0002041 ICD9:110-118.99 ICD9 MONDO 110-118.99 0002041
+70142 MONDO:0004647 ICD9:230-234.99 ICD9 MONDO 230-234.99 0004647
+71538 MONDO:0004664 ICD9:120-129.99 ICD9 MONDO 120-129.99 0004664
+72332 MONDO:0003240 ICD9:240-246.99 ICD9 MONDO 240-246.99 0003240
+74817 MONDO:0003150 ICD9:600-608.99 ICD9 MONDO 600-608.99 0003150
+75264 MONDO:0017767 ICD9:390-392.99 ICD9 MONDO 390-392.99 0017767
+77337 MONDO:0004335 ICD9:520-579.99 ICD9 MONDO 520-579.99 0004335
+78952 MONDO:0005649 ICD9:540-543.99 ICD9 MONDO 540-543.99 0005649
+80501 MONDO:0005570 ICD9:280-289.99 ICD9 MONDO 280-289.99 0005570
+
+> toCheck[toCheck$DB2 == "MESH",]
+              dbid1     dbid2  DB2   DB1  id2     id1
+68520 MONDO:0005917 MESH:NoID MESH MONDO NoID 0005917
+73447 MONDO:0005833 MESH:NoID MESH MONDO NoID 0005833
+73766 MONDO:0005899 MESH:NoID MESH MONDO NoID 0005899
+75892 MONDO:0005728 MESH:NoID MESH MONDO NoID 0005728
+
+> toCheck[toCheck$DB2 == "UMLS",]
+              dbid1     dbid2  DB2   DB1  id2     id1
+59236 MONDO:0022790 UMLS:test UMLS MONDO test 0022790
+
+> toCheck[toCheck$DB2 == "Wikipedia",]
+              dbid1                                                          dbid2       DB2   DB1
+14820 MONDO:0015614                             Wikipedia:Dermatitis_herpetiformis Wikipedia MONDO
+39861 MONDO:0006496                                                Wikipedia:Palsy Wikipedia MONDO
+39995 MONDO:0005176                                            Wikipedia:Insulitis Wikipedia MONDO
+40565 MONDO:0005189                              Wikipedia:Carotid_artery_stenosis Wikipedia MONDO
+40568 MONDO:0005185                        Wikipedia:Juvenile_idiopathic_arthritis Wikipedia MONDO
+40674 MONDO:0005195                                   Wikipedia:Septic_peritonitis Wikipedia MONDO
+40707 MONDO:0005190                                    Wikipedia:Macroglobulinemia Wikipedia MONDO
+40748 MONDO:0005208                                  Wikipedia:Amelanotic_melanoma Wikipedia MONDO
+40808 MONDO:0006534                                Wikipedia:Cholinergic_urticaria Wikipedia MONDO
+40839 MONDO:0005200                                 Wikipedia:Viral_cardiomyopathy Wikipedia MONDO
+40998 MONDO:0006547                                             Wikipedia:Exanthem Wikipedia MONDO
+41077 MONDO:0006543                    Wikipedia:Epidermolysis_bullosa_dystrophica Wikipedia MONDO
+41114 MONDO:0006541                                Wikipedia:Epidermolysis_bullosa Wikipedia MONDO
+41152 MONDO:0006540                                          Wikipedia:Dyshidrosis Wikipedia MONDO
+41243 MONDO:0006515                                   Wikipedia:Acute_pancreatitis Wikipedia MONDO
+41508 MONDO:0006579                                       Wikipedia:Melanocanthoma Wikipedia MONDO
+41514 MONDO:0006576                                      Wikipedia:Ludwig's_angina Wikipedia MONDO
+41557 MONDO:0006574                                          Wikipedia:Lipomatosis Wikipedia MONDO
+41577 MONDO:0006573                                        Wikipedia:Lipodystrophy Wikipedia MONDO
+41599 MONDO:0006571                                       Wikipedia:Lichen_nitidus Wikipedia MONDO
+41692 MONDO:0005255 Wikipedia:New_York_Heart_Association_Functional_Classification Wikipedia MONDO
+41711 MONDO:0005257 Wikipedia:New_York_Heart_Association_Functional_Classification Wikipedia MONDO
+41713 MONDO:0006586                                Wikipedia:Neurotic_excoriations Wikipedia MONDO
+41720 MONDO:0005256 Wikipedia:New_York_Heart_Association_Functional_Classification Wikipedia MONDO
+41724 MONDO:0006583                                Wikipedia:Necrobiosis_lipoidica Wikipedia MONDO
+41753 MONDO:0005253                          Wikipedia:High-output_cardiac_failure Wikipedia MONDO
+41758 MONDO:0006582                                       Wikipedia:Mongolian_spot Wikipedia MONDO
+41771 MONDO:0006580                                             Wikipedia:Miliaria Wikipedia MONDO
+41871 MONDO:0005229                                           Wikipedia:Bacteremia Wikipedia MONDO
+41876 MONDO:0006558                               Wikipedia:Gestational_pemphigoid Wikipedia MONDO
+41897 MONDO:0006559                             Wikipedia:Hidradenitis_suppurativa Wikipedia MONDO
+41921 MONDO:0005227                                              Wikipedia:Abscess Wikipedia MONDO
+41928 MONDO:0006554                                   Wikipedia:Granuloma_annulare Wikipedia MONDO
+41974 MONDO:0006552                                         Wikipedia:Folliculitis Wikipedia MONDO
+41989 MONDO:0006553                                  Wikipedia:Fox-Fordyce_disease Wikipedia MONDO
+42228 MONDO:0006563                        Wikipedia:Inverted_follicular_keratosis Wikipedia MONDO
+42288 MONDO:0005230                                           Wikipedia:Cellulitis Wikipedia MONDO
+42305 MONDO:0006560                                         Wikipedia:Hypodidrosis Wikipedia MONDO
+43386 MONDO:0005039                          Wikipedia:Reproductive_system_disease Wikipedia MONDO
+43421 MONDO:0007699                              Wikipedia:Hashimoto's_thyroiditis Wikipedia MONDO
+44135 MONDO:0005071                               Wikipedia:Nervous_system_disease Wikipedia MONDO
+44155 MONDO:0005073                                                Wikipedia:Nevus Wikipedia MONDO
+44759 MONDO:0005122                           Wikipedia:Pectobacterium_carotovorum Wikipedia MONDO
+47982 MONDO:0006313                                       Wikipedia:Nabothian_cyst Wikipedia MONDO
+48218 MONDO:0006328                                     Wikipedia:Odontogenic_cyst Wikipedia MONDO
+48313 MONDO:0007650                                        Wikipedia:MALT_lymphoma Wikipedia MONDO
+49234 MONDO:0007446                            Wikipedia:Dermatosis_papulosa_nigra Wikipedia MONDO
+52674 MONDO:0006021                                  Wikipedia:Prinzmetal's_angina Wikipedia MONDO
+55218 MONDO:0007417                                   Wikipedia:Darier%27s_disease Wikipedia MONDO
+60237 MONDO:0008420                                 Wikipedia:Seborrheic_keratosis Wikipedia MONDO
+60790 MONDO:0019127                                         Wikipedia:Polymyositis Wikipedia MONDO
+62448 MONDO:0007070                                    Wikipedia:Adiposis_dolorosa Wikipedia MONDO
+63798 MONDO:0010631                                 Wikipedia:Incongenita_pigmenti Wikipedia MONDO
+64269 MONDO:0007029                          Wikipedia:Branchio-oto-renal_syndrome Wikipedia MONDO
+64671 MONDO:0007035                                 Wikipedia:Acanthosis_nigricans Wikipedia MONDO
+72341 MONDO:0003240                                      Wikipedia:Thyroid_disease Wikipedia MONDO
+79429 MONDO:0005625                                              Wikipedia:Malaria Wikipedia MONDO
+79489 MONDO:0005623                               Wikipedia:Autoimmune_thyroiditis Wikipedia MONDO
+80243 MONDO:0005563                                Wikipedia:NUT_midline_carcinoma Wikipedia MONDO
+80396 MONDO:0018882                                           Wikipedia:Vasculitis Wikipedia MONDO
+80443 MONDO:0005578                                            Wikipedia:Arthritis Wikipedia MONDO
+80603 MONDO:0018872                      Wikipedia:Acute_megakaryoblastic_leukemia Wikipedia MONDO
+80915 MONDO:0005555                                          Wikipedia:Cycloplegia Wikipedia MONDO
+81006 MONDO:0005554                                           Wikipedia:Rheumatism Wikipedia MONDO
+81955 MONDO:0005527                                 Wikipedia:Toxic_encephalopathy Wikipedia MONDO
+82317 MONDO:0018830                                     Wikipedia:Kimura's_disease Wikipedia MONDO
+82553 MONDO:0005518                                Wikipedia:Pseudohermaphroditism Wikipedia MONDO
+82581 MONDO:0005511                            Wikipedia:Janus_kinase_3_deficiency Wikipedia MONDO
+83736 MONDO:0005457                                Wikipedia:Acute_stress_reaction Wikipedia MONDO
+84483 MONDO:0005467                                  Wikipedia:Occupational_stress Wikipedia MONDO
+85514 MONDO:0006598                                      Wikipedia:Photodermatitis Wikipedia MONDO
+85532 MONDO:0006596                                      Wikipedia:Photodermatitis Wikipedia MONDO
+85558 MONDO:0006594                                            Wikipedia:Pemphigus Wikipedia MONDO
+85581 MONDO:0006592                                        Wikipedia:Parapsoriasis Wikipedia MONDO
+85623 MONDO:0006591                                         Wikipedia:Panniculitis Wikipedia MONDO
+88188 MONDO:0006611              Wikipedia:Cutaneous_manifestations_of_sarcoidosis Wikipedia MONDO
+88226 MONDO:0006610                                      Wikipedia:Steroid_atrophy Wikipedia MONDO
+88375 MONDO:0006625                                    Wikipedia:Altitude_sickness Wikipedia MONDO
+88602 MONDO:0006604                                              Wikipedia:Rosacea Wikipedia MONDO
+88620 MONDO:0006602                                        Wikipedia:Porokeratosis Wikipedia MONDO
+88662 MONDO:0006601                                     Wikipedia:Pityriasis_rosea Wikipedia MONDO
+                                                       id2     id1
+14820                             Dermatitis_herpetiformis 0015614
+39861                                                Palsy 0006496
+39995                                            Insulitis 0005176
+40565                              Carotid_artery_stenosis 0005189
+40568                        Juvenile_idiopathic_arthritis 0005185
+40674                                   Septic_peritonitis 0005195
+40707                                    Macroglobulinemia 0005190
+40748                                  Amelanotic_melanoma 0005208
+40808                                Cholinergic_urticaria 0006534
+40839                                 Viral_cardiomyopathy 0005200
+40998                                             Exanthem 0006547
+41077                    Epidermolysis_bullosa_dystrophica 0006543
+41114                                Epidermolysis_bullosa 0006541
+41152                                          Dyshidrosis 0006540
+41243                                   Acute_pancreatitis 0006515
+41508                                       Melanocanthoma 0006579
+41514                                      Ludwig's_angina 0006576
+41557                                          Lipomatosis 0006574
+41577                                        Lipodystrophy 0006573
+41599                                       Lichen_nitidus 0006571
+41692 New_York_Heart_Association_Functional_Classification 0005255
+41711 New_York_Heart_Association_Functional_Classification 0005257
+41713                                Neurotic_excoriations 0006586
+41720 New_York_Heart_Association_Functional_Classification 0005256
+41724                                Necrobiosis_lipoidica 0006583
+41753                          High-output_cardiac_failure 0005253
+41758                                       Mongolian_spot 0006582
+41771                                             Miliaria 0006580
+41871                                           Bacteremia 0005229
+41876                               Gestational_pemphigoid 0006558
+41897                             Hidradenitis_suppurativa 0006559
+41921                                              Abscess 0005227
+41928                                   Granuloma_annulare 0006554
+41974                                         Folliculitis 0006552
+41989                                  Fox-Fordyce_disease 0006553
+42228                        Inverted_follicular_keratosis 0006563
+42288                                           Cellulitis 0005230
+42305                                         Hypodidrosis 0006560
+43386                          Reproductive_system_disease 0005039
+43421                              Hashimoto's_thyroiditis 0007699
+44135                               Nervous_system_disease 0005071
+44155                                                Nevus 0005073
+44759                           Pectobacterium_carotovorum 0005122
+47982                                       Nabothian_cyst 0006313
+48218                                     Odontogenic_cyst 0006328
+48313                                        MALT_lymphoma 0007650
+49234                            Dermatosis_papulosa_nigra 0007446
+52674                                  Prinzmetal's_angina 0006021
+55218                                   Darier%27s_disease 0007417
+60237                                 Seborrheic_keratosis 0008420
+60790                                         Polymyositis 0019127
+62448                                    Adiposis_dolorosa 0007070
+63798                                 Incongenita_pigmenti 0010631
+64269                          Branchio-oto-renal_syndrome 0007029
+64671                                 Acanthosis_nigricans 0007035
+72341                                      Thyroid_disease 0003240
+79429                                              Malaria 0005625
+79489                               Autoimmune_thyroiditis 0005623
+80243                                NUT_midline_carcinoma 0005563
+80396                                           Vasculitis 0018882
+80443                                            Arthritis 0005578
+80603                      Acute_megakaryoblastic_leukemia 0018872
+80915                                          Cycloplegia 0005555
+81006                                           Rheumatism 0005554
+81955                                 Toxic_encephalopathy 0005527
+82317                                     Kimura's_disease 0018830
+82553                                Pseudohermaphroditism 0005518
+82581                            Janus_kinase_3_deficiency 0005511
+83736                                Acute_stress_reaction 0005457
+84483                                  Occupational_stress 0005467
+85514                                      Photodermatitis 0006598
+85532                                      Photodermatitis 0006596
+85558                                            Pemphigus 0006594
+85581                                        Parapsoriasis 0006592
+85623                                         Panniculitis 0006591
+88188              Cutaneous_manifestations_of_sarcoidosis 0006611
+88226                                      Steroid_atrophy 0006610
+88375                                    Altitude_sickness 0006625
+88602                                              Rosacea 0006604
+88620                                        Porokeratosis 0006602
+88662                                     Pityriasis_rosea 0006601
+
+> table(toKeep$DB2)
+
+                  COHD                     DC                  DERMO                   DOID                    EFO 
+                  1598                    151                      1                   8656                   2244 
+                    EV                   GARD                    GTR                     HP                  ICD10 
+                     2                   2828                      1                    509                  11313 
+                  ICD9                 ICD9CM                ICDCM10                    IDO                   KEGG 
+                  2781                      7                      2                      1                     37 
+                MedDRA                 MEDDRA                 MEDGEN                   MeSH                   MESH 
+                  1474                      1                      2                      1                   8168 
+                 MFOMD                     MP                    MTH                    NCI      NCI_Metathesaurus 
+                     3                      4                      1                      2                      1 
+                  NCiT                   NCIT                  NDFRT                 NIFSTD                    OBI 
+                     1                   5528                      1                     18                      1 
+                   obo                   OGMS                   OMIM                 OMIMPS                   ORDO 
+                     1                      2                   7992                    368                      1 
+              Orphanet                   PMID                  SCTID        SCTID_2010_1_31 SNOMEDCT_US_2016_03_01 
+                  8992                     11                   6948                     16                      4 
+             SNOWMEDCT                   UMLS               UMLS_CUI                UniProt               Wikidata 
+                     1                  18599                      2                      1                      2 
+
+> table(toKeep$DB1)
+
+MONDO 
+88277 
+
+> crossId <- setNames(toKeep[,c("dbid1","dbid2")],c("id1","id2"))
+
+> dim(crossId)
+[1] 88277     2
+
+> head(crossId)
+             id1             id2
+1  MONDO:0001642   SCTID:1489008
+2  MONDO:0001642     ICD9:373.11
+5  MONDO:0001642      DOID:13134
+8  MONDO:0002974 SCTID:363354003
+10 MONDO:0002974      ICD9:180.9
+11 MONDO:0002974     COHD:198984
+
+> crossId$id2 <- gsub("MESH","MeSH",crossId$id2)
+
+> crossId$id2 <- gsub("ORDO","ORPHA",crossId$id2)
+
+> crossId$id2 <- gsub("\\bNCI\\b","NCIt",crossId$id2)
+
+> crossId$id2 <- gsub("NCiT","NCIt",crossId$id2)
+
+> crossId$id2 <- gsub("NCIT","NCIt",crossId$id2)
+
+> crossId$id2 <- gsub("SNOWMEDCT","SNOMEDCT",crossId$id2)
+
+> crossId$id2 <- gsub("SCTID","SNOMEDCT",crossId$id2)
+
+> crossId$id2 <- gsub("UMLS","MedGen",crossId$id2)
+
+> crossId$id2 <- gsub("Orphanet","ORPHA",crossId$id2)
+
+> crossId$id2 <- gsub("MEDGEN","MedGen",crossId$id2)
+
+> # crossId$id2 <- gsub("NCI Metathesaurus","NCIt",crossId$id2)
+> crossId$DB2 <- gsub(":.*","",crossId$id2)
+
+> crossId$DB1 <- gsub(":.*","",crossId$id1)
+
+> ## Remove self references
+> crossId[which(crossId$id1 == crossId$id2),]
+[1] id1 id2 DB2 DB1
+<0 rows> (or 0-length row.names)
+
+> # crossId <- crossId[-which(crossId$id1 == crossId$id2),]
+> 
+> ######################################
+> ## entryId
+> entryId <- id[id$id %in% diseas .... [TRUNCATED] 
+
+> table(gsub(":.*","",entryId$id))
+
+MONDO 
+20486 
+
+> grep(":",entryId$id,invert = T,value = T)
+character(0)
+
+> entryId <- entryId[grepl(":",entryId$id),,drop = F]
+
+> table(gsub(":.*","",entryId$id))
+
+MONDO 
+20486 
+
+> entryId <- entryId[grep("#",entryId$id, invert = T, value = F),,drop = FALSE]
+
+> table(gsub(":.*","",entryId$id))
+
+MONDO 
+20486 
+
+> entryId$DB <- gsub(":.*","",entryId$id)
+
+> entryId <- entryId[,c("DB","id","def")]
+
+> ## Empty definition to NA
+> nc <- nchar(entryId$def)
+
+> head(table(nc), n = 20)
+nc
+ 1  2  4  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 
+ 7  5  3  4  2  7  7  6  4  2  7  3  3  3  5  6  5  7  3 12 
+
+> entryId[which(nc < 4),]
+         DB            id def
+2076  MONDO MONDO:0015908   .
+2828  MONDO MONDO:0015803   .
+7372  MONDO MONDO:0009231  ).
+7456  MONDO MONDO:0010263   .
+12212 MONDO MONDO:0018182   .
+12774 MONDO MONDO:0019536   .
+13065 MONDO MONDO:0018099  ).
+13703 MONDO MONDO:0019407  ).
+14071 MONDO MONDO:0008547  ).
+15576 MONDO MONDO:0019095   .
+17845 MONDO MONDO:0015279   .
+20482 MONDO MONDO:0016033  ).
+
+> entryId[which(nc < 4),"def"] <- NA
+
+> ## Check characters for \t, \n, \r and put to ASCII
+> entryId$def <- iconv(x = entryId$def,to="ASCII//TRANSLIT")
+
+> table(unlist(sapply(entryId$def, strsplit, split = "")))
+
+    \n             _      -      ,      ;      :      ?      .      '      "      (      )      [      ]      *      /      & 
+     3 399590   3495   7260  26337   1333    380      5  23462    498     46   8029   8110     22     22      1    954      9 
+     #      %      `      ^      +      <      =      >      ~      0      1      2      3      4      5      6      7      8 
+     7    202     12      1     25     14      1      1      1   1060   3766   2765   1597    877    772    695    514    385 
+     9      a      A      b      B      c      C      d      D      e      E      f      F      g      G      h      H      i 
+   524 225742  10100  34399   1670 104100   3840  91205   2531 266784   1385  46685   1278  40328   1192  85825   2112 204000 
+     I      j      J      k      K      l      L      m      M      n      N      o      O      p      P      q      Q      r 
+  5000   1273    298   6991    502 119271   1545  83589   2479 169993   1558 177192   1173  60422   2870   2421     68 161554 
+     R      s      S      t      T      u      U      v      V      w      W      x      X      y      Y      z      Z 
+  1773 171745   3261 183388   4455  60449    286  22933    601  14705    612   5552    721  58461    207   7940     70 
+
+> entryId$def <- gsub(paste("\n","\t","\r", sep = "|")," ",entryId$def)
+
+> table(unlist(sapply(entryId$def, strsplit, split = "")))
+
+            _      -      ,      ;      :      ?      .      '      "      (      )      [      ]      *      /      &      # 
+399593   3495   7260  26337   1333    380      5  23462    498     46   8029   8110     22     22      1    954      9      7 
+     %      `      ^      +      <      =      >      ~      0      1      2      3      4      5      6      7      8      9 
+   202     12      1     25     14      1      1      1   1060   3766   2765   1597    877    772    695    514    385    524 
+     a      A      b      B      c      C      d      D      e      E      f      F      g      G      h      H      i      I 
+225742  10100  34399   1670 104100   3840  91205   2531 266784   1385  46685   1278  40328   1192  85825   2112 204000   5000 
+     j      J      k      K      l      L      m      M      n      N      o      O      p      P      q      Q      r      R 
+  1273    298   6991    502 119271   1545  83589   2479 169993   1558 177192   1173  60422   2870   2421     68 161554   1773 
+     s      S      t      T      u      U      v      V      w      W      x      X      y      Y      z      Z 
+171745   3261 183388   4455  60449    286  22933    601  14705    612   5552    721  58461    207   7940     70 
+
+> entryId$def <- gsub("\"","'",entryId$def)
+
+> table(unlist(sapply(entryId$def, strsplit, split = "")))
+
+            _      -      ,      ;      :      ?      .      '      (      )      [      ]      *      /      &      #      % 
+399593   3495   7260  26337   1333    380      5  23462    544   8029   8110     22     22      1    954      9      7    202 
+     `      ^      +      <      =      >      ~      0      1      2      3      4      5      6      7      8      9      a 
+    12      1     25     14      1      1      1   1060   3766   2765   1597    877    772    695    514    385    524 225742 
+     A      b      B      c      C      d      D      e      E      f      F      g      G      h      H      i      I      j 
+ 10100  34399   1670 104100   3840  91205   2531 266784   1385  46685   1278  40328   1192  85825   2112 204000   5000   1273 
+     J      k      K      l      L      m      M      n      N      o      O      p      P      q      Q      r      R      s 
+   298   6991    502 119271   1545  83589   2479 169993   1558 177192   1173  60422   2870   2421     68 161554   1773 171745 
+     S      t      T      u      U      v      V      w      W      x      X      y      Y      z      Z 
+  3261 183388   4455  60449    286  22933    601  14705    612   5552    721  58461    207   7940     70 
+
+> ## Check duplicated records
+> dim(entryId)
+[1] 20486     3
+
+> length(unique(entryId[,"id"]))
+[1] 20486
+
+> ## all crossId$id1 in entryId
+> table(crossId$id1 %in% entryId$id)
+
+ TRUE 
+88277 
+
+> ######################################
+> ## idNames
+> idNames <- syn[syn$id %in% disease$descendants,]
+
+> table(gsub(":.*","",idNames$id))
+
+MONDO 
+82448 
+
+> grep(":",idNames$id,invert = T,value = T)
+character(0)
+
+> idNames <- idNames[grepl(":",idNames$id),,drop = F]
+
+> table(gsub(":.*","",idNames$id))
+
+MONDO 
+82448 
+
+> grep("#",idNames$id,value = T)
+character(0)
+
+> idNames <- idNames[grep("#",idNames$id,invert = T, value = F),]
+
+> ## Labels
+> lbl <- id[id$id %in% disease$descendants,c("id","label")]
+
+> table(gsub(":.*","",lbl$id))
+
+MONDO 
+20486 
+
+> grep(":",lbl$id,invert = T,value = T)
+character(0)
+
+> lbl <- lbl[grepl(":",lbl$id),,drop = F]
+
+> table(gsub(":.*","",lbl$id))
+
+MONDO 
+20486 
+
+> grep("#",lbl$id,value = T)
+character(0)
+
+> lbl <- lbl[grep("#",lbl$id,invert = T, value = F),]
+
+> table(gsub(":.*","",lbl$id))
+
+MONDO 
+20486 
+
+> ## 
+> idNames <- rbind(idNames,setNames(lbl, nm = names(idNames)))
+
+> idNames$DB <- gsub(":.*","",idNames$id)
+
+> idNames$canonical <- ifelse(idNames$syn %in% lbl$label, TRUE, FALSE)
+
+> dim(idNames)
+[1] 102934      4
+
+> ## unique
+> dim(unique(idNames))
+[1] 99148     4
+
+> idNames <- idNames[order(idNames$canonical,decreasing = T),]
+
+> idNames <- unique(idNames)
+
+> dim(idNames)
+[1] 99148     4
+
+> ## Check characters for \t, \n, \r and put to ASCII
+> idNames$syn <- iconv(x = idNames$syn,to="ASCII//TRANSLIT")
+
+> table(unlist(sapply(idNames$syn, strsplit, split = "")))
+
+    \t     \n             _      -      ,      ;      :      ?      .      '      "      (      )      [      ]      @      / 
+     1      1 273927      3  19538  27338   4882     53      6    642   1047      8   3878   3923     95     95      1    951 
+     &      +      <      >      $      0      1      2      3      4      5      6      7      8      9      a      A      b 
+    23     64     29      2      3   1600  12508   8586   5167   3797   2727   2480   1909   1614   1455 207842  52951  19331 
+     B      c      C      d      D      e      E      f      F      g      G      h      H      i      I      j      J      k 
+ 12694  93818  38654  80745  30724 220129  45230  32155  10827  32377  12073  53808  18979 189123  44310   1071   1317   7507 
+     K      l      L      m      M      n      N      o      O      p      P      q      Q      r      R      s      S      t 
+  3532 124535  30321  94170  29979 142969  33940 185756  35887  68284  28207   2360    569 148717  31708 132337  45052 141308 
+     T      u      U      v      V      w      W      x      X      y      Y      z      Z 
+ 39627  57778  11012  15107   5048   5719   4724   6026   4115  76922  16953   1845    685 
+
+> idNames$syn <- gsub(paste("\n","\t","\r", sep = "|")," ",idNames$syn)
+
+> table(unlist(sapply(idNames$syn, strsplit, split = "")))
+
+            _      -      ,      ;      :      ?      .      '      "      (      )      [      ]      @      /      &      + 
+273929      3  19538  27338   4882     53      6    642   1047      8   3878   3923     95     95      1    951     23     64 
+     <      >      $      0      1      2      3      4      5      6      7      8      9      a      A      b      B      c 
+    29      2      3   1600  12508   8586   5167   3797   2727   2480   1909   1614   1455 207842  52951  19331  12694  93818 
+     C      d      D      e      E      f      F      g      G      h      H      i      I      j      J      k      K      l 
+ 38654  80745  30724 220129  45230  32155  10827  32377  12073  53808  18979 189123  44310   1071   1317   7507   3532 124535 
+     L      m      M      n      N      o      O      p      P      q      Q      r      R      s      S      t      T      u 
+ 30321  94170  29979 142969  33940 185756  35887  68284  28207   2360    569 148717  31708 132337  45052 141308  39627  57778 
+     U      v      V      w      W      x      X      y      Y      z      Z 
+ 11012  15107   5048   5719   4724   6026   4115  76922  16953   1845    685 
+
+> idNames$syn <- gsub("\"","'",idNames$syn)
+
+> table(unlist(sapply(idNames$syn, strsplit, split = "")))
+
+            _      -      ,      ;      :      ?      .      '      (      )      [      ]      @      /      &      +      < 
+273929      3  19538  27338   4882     53      6    642   1055   3878   3923     95     95      1    951     23     64     29 
+     >      $      0      1      2      3      4      5      6      7      8      9      a      A      b      B      c      C 
+     2      3   1600  12508   8586   5167   3797   2727   2480   1909   1614   1455 207842  52951  19331  12694  93818  38654 
+     d      D      e      E      f      F      g      G      h      H      i      I      j      J      k      K      l      L 
+ 80745  30724 220129  45230  32155  10827  32377  12073  53808  18979 189123  44310   1071   1317   7507   3532 124535  30321 
+     m      M      n      N      o      O      p      P      q      Q      r      R      s      S      t      T      u      U 
+ 94170  29979 142969  33940 185756  35887  68284  28207   2360    569 148717  31708 132337  45052 141308  39627  57778  11012 
+     v      V      w      W      x      X      y      Y      z      Z 
+ 15107   5048   5719   4724   6026   4115  76922  16953   1845    685 
+
+> ## Remove empty syn
+> table(is.na(idNames$syn))
+
+FALSE 
+99148 
+
+> ## idNames <- idNames[!is.na(idNames$syn),]
+> dim(idNames)
+[1] 99148     4
+
+> ## Remove empty names, ifany
+> nc <- nchar(idNames$syn)
+
+> table(nc)
+nc
+   2    3    4    5    6    7    8    9   10   11   12   13   14   15   16   17   18   19   20   21   22   23   24   25   26 
+ 143 1278 2427 2669 1452  569  285  314  520  779  978 1219 1606 1796 1888 1854 2016 2190 2318 2379 2616 2757 2755 2641 2601 
+  27   28   29   30   31   32   33   34   35   36   37   38   39   40   41   42   43   44   45   46   47   48   49   50   51 
+2611 2789 2795 2744 2760 2722 2411 2225 2097 2055 1885 1875 1794 1641 1548 1463 1388 1389 1254 1192 1069 1165 1061  920  792 
+  52   53   54   55   56   57   58   59   60   61   62   63   64   65   66   67   68   69   70   71   72   73   74   75   76 
+ 858  784  682  647  567  572  523  433  457  407  440  354  306  295  296  229  247  220  218  176  184  186  156  149  129 
+  77   78   79   80   81   82   83   84   85   86   87   88   89   90   91   92   93   94   95   96   97   98   99  100  101 
+ 102  101   92   90   86   92   78   78   64   65   53   57   58   71   72   46   50   47   40   56   51   43   25   45   24 
+ 102  103  104  105  106  107  108  109  110  111  112  113  114  115  116  117  118  119  120  121  122  123  124  125  126 
+  28   13   16   21   25   18   26   15   10   11   10   16   12   14   11    8    5    8    5    5    3    8    5    1    3 
+ 127  128  129  130  131  132  133  134  135  136  137  138  139  140  142  143  144  145  148  150  151  155  180  244  265 
+   5    5    1    3    2    2    4    1    3    2    4    2    1    3    1    2    1    1    2    4    2    1    1    1    1 
+
+> head(idNames[which(nc == 6),])
+                id    syn    DB canonical
+785  MONDO:0012346 GEFSP4 MONDO      TRUE
+1186 MONDO:0013654 ANIB11 MONDO      TRUE
+1330 MONDO:0013639 NRCLP6 MONDO      TRUE
+1874 MONDO:0011057 stroke MONDO      TRUE
+1939 MONDO:0012378 GINGF3 MONDO      TRUE
+2552 MONDO:0011084 PSORS3 MONDO      TRUE
+
+> head(idNames[which(nc < 3 & idNames$canonical == FALSE),])
+                id syn    DB canonical
+960  MONDO:0013662  BE MONDO     FALSE
+2299 MONDO:0011024  Dh MONDO     FALSE
+2302 MONDO:0011024  DH MONDO     FALSE
+3545 MONDO:0014873  NC MONDO     FALSE
+5552 MONDO:0012105  Wg MONDO     FALSE
+6923 MONDO:0000190  VF MONDO     FALSE
+
+> ## Remove names of 0 or 1 character long
+> idNames[which(nc == 0),]
+[1] id        syn       DB        canonical
+<0 rows> (or 0-length row.names)
+
+> idNames[which(nc == 1),]
+[1] id        syn       DB        canonical
+<0 rows> (or 0-length row.names)
+
+> # idNames <- idNames[-which(nc == 0),]
+> 
+> ## All idnames in entryid
+> table(idNames$id %in% entryId$id)
+
+ TRUE 
+99148 
+
+> ######################################
+> ## parentId
+> parentId <- edgesJson[which(edgesJson$obj %in% disease$descendants),c("sub","obj")]
+
+> table(gsub(":.*","",parentId$sub))
+
+MONDO 
+36206 
+
+> table(gsub(":.*","",parentId$obj))
+
+MONDO 
+36206 
+
+> grep(":",parentId$sub,invert = T,value = T)
+character(0)
+
+> grep(":",parentId$obj,invert = T,value = T)
+character(0)
+
+> grep("#",parentId$sub,value = T)
+character(0)
+
+> grep("#",parentId$obj,value = T)
+character(0)
+
+> names(parentId) <- c("id","parent")
+
+> parentId$DB <- gsub(":.*","",parentId$id)
+
+> parentId$pDB <- gsub(":.*","",parentId$parent)
+
+> ## all parentId in entryId
+> table(parentId$id %in% entryId$id)
+
+ TRUE 
+36206 
+
+> table(parentId$parent %in% entryId$id)
+
+ TRUE 
+36206 
+
+> ## "Phenome" not in entryId --> OK
+> parentId[!(parentId$parent %in% entryId$id),]
+[1] id     parent DB     pDB   
+<0 rows> (or 0-length row.names)
+
+> # parentId <- parentId[which(parentId$id %in% entryId$id & parentId$parent %in% entryId$id),]
+> # parentId <- parentId[parentId$id %in% nodesJson$id .... [TRUNCATED] 
+
+> crossId$id2 <- gsub(".*:","",crossId$id2)
+
+> entryId$id <- gsub(".*:","",entryId$id)
+
+> parentId$id <- gsub(".*:","",parentId$id)
+
+> parentId$parent <- gsub(".*:","",parentId$parent)
+
+> idNames$id <- gsub(".*:","",idNames$id)
+
+> ############################
+> Monarch_idNames <- idNames[,c("DB","id","syn","canonical")]
+
+> Monarch_parentId <- parentId[,c("DB","id","pDB","parent")]
+
+> Monarch_crossId <- crossId[,c("DB1","id1","DB2","id2")]
+
+> Monarch_entryId <- entryId[,c("DB","id","def")]
+
+> ############################
+> ## Write tables
+> toSave <- grep("^Monarch[_]", ls(), value=T)
+
+> for(f in toSave){
++   message(paste("Saving", f))
++   ## Ensure unicity
++   assign(f, get(f))
++   if(length(names(f))==0){
++     f <- unique(f)
++    .... [TRUNCATED] 
+Saving Monarch_crossId
+Saving Monarch_entryId
+Saving Monarch_idNames
+Saving Monarch_parentId
+Saving Monarch_sourceFiles
+Warning messages:
+1: In table(!is.na(as.numeric(crossId$id2))) : NAs introduced by coercion
+2: In which(!is.na(as.numeric(crossId$id2)) & !is.na(as.numeric(crossId$id1))) :
+  NAs introduced by coercion
+3: In which(!is.na(as.numeric(crossId$id2)) & !is.na(as.numeric(crossId$id1))) :
+  NAs introduced by coercion
+4: In table(!is.na(as.numeric(sub("^[^[:digit:]]*", "", toCheck$id2)))) :
+  NAs introduced by coercion
+5: In which(!is.na(as.numeric(sub("^[^[:digit:]]*", "", toCheck$id2))) &  :
+  NAs introduced by coercion
+6: In which(!is.na(as.numeric(sub("^[^[:digit:]]*", "", toCheck$id2))) &  :
+  NAs introduced by coercion
