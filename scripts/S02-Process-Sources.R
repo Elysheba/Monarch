@@ -2,12 +2,12 @@ rm(list = ls())
 gc()
 
 setwd("~/Shared/Data-Science/Data-Source-Model-Repository/Monarch/scripts/")
-
+source("../../00-Utils/writeLastUpdate.R")
 library(XML)
 library(parallel)
 library(jsonlite)
-library(rdflib)
-library(redland)
+# library(rdflib)
+# library(redland)
 source("../../00-Utils/df2rdf.R")
 
 ##
@@ -32,11 +32,9 @@ Monarch_sourceFiles <- sfi[which(sfi$inUse), c("url", "current")]
 ## Data from mondo.owl ----
 ###############################################################################@
 ## Convert OWL to JSON
-if(!file.exists(file.path(sdir,"mondo.json"))){
-  Sys.setenv(PATH = paste(Sys.getenv("PATH"),"/home/lfrancois/bin/",sep = ":"))
-  system(paste("robot convert --input ",file.path(sdir,"mondo.owl"),
-               " --output ",file.path(sdir,"mondo.json"), sep = ""))
-}
+Sys.setenv(PATH = paste(Sys.getenv("PATH"),"/home/lfrancois/bin/",sep = ":"))
+system(paste("robot convert --input ",file.path(sdir,"mondo.owl"),
+             " --output ",file.path(sdir,"mondo.json"), sep = ""))
 readJson <- jsonlite::fromJSON(txt = file.path(sdir,"mondo.json"))
 
 checkSyn <- do.call(rbind,lapply(readJson$graphs$nodes[[1]]$meta$synonyms, function(x) x))
@@ -181,12 +179,22 @@ toCheck[toCheck$DB2 == "ICD9",]
 toCheck[toCheck$DB2 == "MESH",]
 toCheck[toCheck$DB2 == "UMLS",]
 toCheck[toCheck$DB2 == "Wikipedia",]
+toCheck[toCheck$DB2 == "ONCOTREE",]
+toCheck[toCheck$DB2 == "Orphanet",]
+toCheck[toCheck$DB2 == "SCTID",]
 
 table(toKeep$DB2)
 table(toKeep$DB1)
 crossId <- setNames(toKeep[,c("dbid1","dbid2")],c("id1","id2"))
 dim(crossId)
 head(crossId)
+
+## DB MEDGEN is the internal medgen id instead of the concept UI that we employ
+## MedGen itself uses the UMLS CUI if available (starting with C) and creates an internal one if not (starting with CN). 
+## If a UMLS CUI is created later on, it reverts back to this one, discarding the internal id (CN)
+## Both UMLS as MedGEN the UMLS CUI, so database name will be UMLS
+crossId <- crossId[grep(paste("MEDGEN","http","url","Wikidata",sep = "|"),crossId$id2,invert = T),]
+table(gsub(":.*","",crossId$id2))
 
 crossId$id2 <- gsub("MESH","MeSH",crossId$id2)
 crossId$id2 <- gsub("ORDO","ORPHA",crossId$id2)
@@ -195,9 +203,9 @@ crossId$id2 <- gsub("NCiT","NCIt",crossId$id2)
 crossId$id2 <- gsub("NCIT","NCIt",crossId$id2)
 crossId$id2 <- gsub("SNOWMEDCT","SNOMEDCT",crossId$id2)
 crossId$id2 <- gsub("SCTID","SNOMEDCT",crossId$id2)
-crossId$id2 <- gsub("UMLS","MedGen",crossId$id2)
+crossId$id2 <- gsub("UMLS_CUI","UMLS",crossId$id2)
 crossId$id2 <- gsub("Orphanet","ORPHA",crossId$id2)
-crossId$id2 <- gsub("MEDGEN","MedGen",crossId$id2)
+crossId$id2 <- gsub("MEDDRA","MedDRA",crossId$id2)
 # crossId$id2 <- gsub("NCI Metathesaurus","NCIt",crossId$id2)
 crossId$DB2 <- gsub(":.*","",crossId$id2)
 crossId$DB1 <- gsub(":.*","",crossId$id1)
@@ -224,11 +232,9 @@ entryId[which(nc < 4),]
 entryId[which(nc < 4),"def"] <- NA
 ## Check characters for \t, \n, \r and put to ASCII
 entryId$def <- iconv(x = entryId$def,to="ASCII//TRANSLIT")
-table(unlist(sapply(entryId$def, strsplit, split = "")))
 entryId$def <- gsub(paste("\n","\t","\r", sep = "|")," ",entryId$def)
-table(unlist(sapply(entryId$def, strsplit, split = "")))
 entryId$def <- gsub("\"","'",entryId$def)
-entryId$def <- gsub("\\","",entryId$def)
+entryId$def <- gsub("\\\\","",entryId$def)
 table(unlist(sapply(entryId$def, strsplit, split = "")))
 
 ## Check duplicated records
@@ -247,6 +253,7 @@ idNames <- idNames[grepl(":",idNames$id),,drop = F]
 table(gsub(":.*","",idNames$id))
 grep("#",idNames$id,value = T)
 idNames <- idNames[grep("#",idNames$id,invert = T, value = F),]
+idNames <- idNames[!is.na(idNames$syn),]
 ## Labels
 lbl <- id[id$id %in% disease$descendants,c("id","label")]
 table(gsub(":.*","",lbl$id))
@@ -256,6 +263,7 @@ table(gsub(":.*","",lbl$id))
 grep("#",lbl$id,value = T)
 lbl <- lbl[grep("#",lbl$id,invert = T, value = F),]
 table(gsub(":.*","",lbl$id))
+lbl <- lbl[!is.na(lbl$label),]
 
 ## 
 idNames <- rbind(idNames,setNames(lbl, nm = names(idNames)))
@@ -270,9 +278,7 @@ dim(idNames)
 
 ## Check characters for \t, \n, \r and put to ASCII
 idNames$syn <- iconv(x = idNames$syn,to="ASCII//TRANSLIT")
-table(unlist(sapply(idNames$syn, strsplit, split = "")))
 idNames$syn <- gsub(paste("\n","\t","\r", sep = "|")," ",idNames$syn)
-table(unlist(sapply(idNames$syn, strsplit, split = "")))
 idNames$syn <- gsub("\"","'",idNames$syn)
 table(unlist(sapply(idNames$syn, strsplit, split = "")))
 
@@ -347,6 +353,12 @@ for(f in toSave){
     file=file.path(ddir, paste(f, ".txt", sep="")),
     sep="\t",
     row.names=FALSE, col.names=TRUE,
-    quote=FALSE
+    quote=TRUE,
+    qmethod = "double"
   )
 }
+writeLastUpdate()
+
+##############################################################
+## Check model
+source("../../00-Utils/autoCheckModel.R")
