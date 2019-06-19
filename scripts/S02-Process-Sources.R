@@ -1,11 +1,33 @@
 rm(list = ls())
 gc()
 
+collectOntology <- function(database = c()){
+  if(!all(database %in% listDB()$db)){
+    stop('database not in DOD, use listDB() to check')
+  }
+  if(length(database) >1){
+    stop("When providing a (list of) ids only one database can be used")
+  }
+  q <- sprintf('{q(func:eq(type,"database")) @filter(eq(name, /%s/i)){~is_in{name}}}', database)
+  # q <- sprintf('{q(func:regexp(name,/%s/i)) @filter(eq(type, "disease") OR eq(type, "phenotype")){name}}', database)
+  q <- paste(q,collapse="\n")
+  rq <- dodCall(dgraphRequest,postText = q)
+  ids <- unlist(rq$result$data$q)
+  ##
+  return(buildDisNet(ids = ids, seed = ids))
+}
+
 setwd("~/Shared/Data-Science/Data-Source-Model-Repository/Monarch/scripts/")
 source("../../00-Utils/writeLastUpdate.R")
 library(XML)
 library(parallel)
 library(jsonlite)
+library(tidyr)
+library(tibble)
+library(dplyr)
+library(readr)
+library(here)
+# library(stringr)
 # library(rdflib)
 # library(redland)
 source("../../00-Utils/df2rdf.R")
@@ -130,6 +152,12 @@ table(gsub(":.*","",crossId$dbid2))
 table(gsub(":.*","",crossId$dbid1))
 dim(crossId)
 crossId <- crossId[!(grepl("#",crossId$dbid1) | grepl("#",crossId$dbid2)),]
+## Remove crossids with colon and space ": "
+head(grep(": ",crossId$dbid2,value = T))
+head(grep(": ",crossId$dbid1,value = T))
+crossId$dbid1 <- gsub(" ", "", crossId$dbid1)
+crossId$dbid2 <- gsub(" ", "", crossId$dbid2)
+##
 dim(crossId)
 
 crossId$DB2 <- gsub(":.*","",crossId$dbid2)
@@ -142,12 +170,6 @@ head(grep(":",crossId$dbid1,invert = T,value = T))
 head(grep(":",crossId$dbid2,invert = T,value = T))
 crossId <- crossId[grepl(":",crossId$dbid2) & grepl(":",crossId$dbid1) ,]
 dim(crossId)
-## Remove crossids with colon and space ": "
-head(grep(": ",crossId$dbid2,value = T))
-head(grep(": ",crossId$dbid1,value = T))
-crossId <- crossId[grep(": ",crossId$dbid2,invert = T),]
-dim(crossId)
-##
 ## an integer is a correct disease ID
 table(!is.na(as.numeric(crossId$id2)))
 table(!is.na(as.numeric(crossId$id1)))
@@ -209,6 +231,8 @@ crossId$id2 <- gsub("MEDDRA","MedDRA",crossId$id2)
 # crossId$id2 <- gsub("NCI Metathesaurus","NCIt",crossId$id2)
 crossId$DB2 <- gsub(":.*","",crossId$id2)
 crossId$DB1 <- gsub(":.*","",crossId$id1)
+table(crossId$DB2)
+table(crossId$DB1)
 
 ## Remove self references
 crossId[which(crossId$id1 == crossId$id2),]
@@ -323,6 +347,16 @@ parentId[!(parentId$parent %in% entryId$id),]
 # parentId <- parentId[parentId$id %in% nodesJson$id,]
 # parentId <- parentId[parentId$parent %in% nodesJson$id,]
 
+######################################
+## Mondo to Phenotype
+mondoHp <- read_tsv(here("sources","disease_phenotype.all.tsv"), col_names = T, col_types = cols(.default = "c")) 
+mondoHp <- mutate(mondoHp,
+                  DB = gsub(":.*","", subject),
+                  id = gsub(".*:","", subject),
+                  hp = object) %>%
+  select(DB, id, hp) %>%
+  filter(grepl("HP", hp))
+  
 #######################################
 crossId$id1 <- gsub(".*:","",crossId$id1)
 crossId$id2 <- gsub(".*:","",crossId$id2)
@@ -330,12 +364,14 @@ entryId$id <- gsub(".*:","",entryId$id)
 parentId$id <- gsub(".*:","",parentId$id)
 parentId$parent <- gsub(".*:","",parentId$parent)
 idNames$id <- gsub(".*:","",idNames$id)
+mondoHp$hp <- gsub(".*:", "", mondoHp$hp)
 
 ############################
 Monarch_idNames <- idNames[,c("DB","id","syn","canonical")]
 Monarch_parentId <- parentId[,c("DB","id","pDB","parent")]
 Monarch_crossId <- crossId[,c("DB1","id1","DB2","id2")]
 Monarch_entryId <- entryId[,c("DB","id","def")]
+Monarch_hp <- mondoHp[,c("DB","id","hp")]
 
 ############################
 ## Write tables

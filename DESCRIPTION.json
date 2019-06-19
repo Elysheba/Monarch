@@ -12,6 +12,14 @@
 				"value": 0.03,
 				"units": "1/day"
 			}
+		},
+		{
+			"name": "disease_phenotype.all.tsv",
+			"URL template": "https://archive.monarchinitiative.org/latest/tsv/disease_associations/disease_phenotype.all.tsv",
+			"remote update frequency":  {
+				"value": 0.03,
+				"units": "1/day"
+			}
 		}
 	]
 }
