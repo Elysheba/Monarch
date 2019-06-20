@@ -54,9 +54,9 @@ Monarch_sourceFiles <- sfi[which(sfi$inUse), c("url", "current")]
 ## Data from mondo.owl ----
 ###############################################################################@
 ## Convert OWL to JSON
-Sys.setenv(PATH = paste(Sys.getenv("PATH"),"/home/lfrancois/bin/",sep = ":"))
-system(paste("robot convert --input ",file.path(sdir,"mondo.owl"),
-             " --output ",file.path(sdir,"mondo.json"), sep = ""))
+# Sys.setenv(PATH = paste(Sys.getenv("PATH"),"/home/lfrancois/bin/",sep = ":"))
+# system(paste("robot convert --input ",file.path(sdir,"mondo.owl"),
+#              " --output ",file.path(sdir,"mondo.json"), sep = ""))
 readJson <- jsonlite::fromJSON(txt = file.path(sdir,"mondo.json"))
 
 checkSyn <- do.call(rbind,lapply(readJson$graphs$nodes[[1]]$meta$synonyms, function(x) x))
@@ -211,13 +211,10 @@ crossId <- setNames(toKeep[,c("dbid1","dbid2")],c("id1","id2"))
 dim(crossId)
 head(crossId)
 
-## DB MEDGEN is the internal medgen id instead of the concept UI that we employ
-## MedGen itself uses the UMLS CUI if available (starting with C) and creates an internal one if not (starting with CN). 
-## If a UMLS CUI is created later on, it reverts back to this one, discarding the internal id (CN)
-## Both UMLS as MedGEN the UMLS CUI, so database name will be UMLS
-crossId <- crossId[grep(paste("MEDGEN","http","url","Wikidata",sep = "|"),crossId$id2,invert = T),]
+crossId <- crossId[grep(paste("http","url","Wikidata",sep = "|"),crossId$id2,invert = T),]
 table(gsub(":.*","",crossId$id2))
 
+crossId$id2 <- gsub("MEDGEN","MedGen",crossId$id2)
 crossId$id2 <- gsub("MESH","MeSH",crossId$id2)
 crossId$id2 <- gsub("ORDO","ORPHA",crossId$id2)
 crossId$id2 <- gsub("\\bNCI\\b","NCIt",crossId$id2)
@@ -278,6 +275,7 @@ table(gsub(":.*","",idNames$id))
 grep("#",idNames$id,value = T)
 idNames <- idNames[grep("#",idNames$id,invert = T, value = F),]
 idNames <- idNames[!is.na(idNames$syn),]
+idNames$canonical <- FALSE
 ## Labels
 lbl <- id[id$id %in% disease$descendants,c("id","label")]
 table(gsub(":.*","",lbl$id))
@@ -288,12 +286,13 @@ grep("#",lbl$id,value = T)
 lbl <- lbl[grep("#",lbl$id,invert = T, value = F),]
 table(gsub(":.*","",lbl$id))
 lbl <- lbl[!is.na(lbl$label),]
+lbl$canonical <- TRUE
 
 ## 
-idNames <- rbind(idNames,setNames(lbl, nm = names(idNames)))
-idNames$DB <- gsub(":.*","",idNames$id)
-idNames$canonical <- ifelse(idNames$syn %in% lbl$label, TRUE, FALSE)
-dim(idNames)
+idNames <- idNames %>%
+  as_tibble() %>%
+  bind_rows(lbl %>% select(id, syn = label, canonical)) %>%
+  mutate(DB = gsub(":.*","", id))
 ## unique
 dim(unique(idNames))
 idNames <- idNames[order(idNames$canonical,decreasing = T),]
