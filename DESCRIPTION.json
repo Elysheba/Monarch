@@ -6,8 +6,8 @@
 	"version": "0.2",
 	"source files": [
 		{
-			"name":"mondo.owl",
-			"URL template":"http://purl.obolibrary.org/obo/mondo.owl",
+			"name":"mondo.json",
+			"URL template":"http://purl.obolibrary.org/obo/mondo.json",
 			"remote update frequency": {
 				"value": 0.03,
 				"units": "1/day"

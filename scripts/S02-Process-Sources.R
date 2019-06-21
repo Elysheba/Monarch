@@ -357,6 +357,7 @@ mondoHp <- mutate(mondoHp,
   filter(grepl("HP", hp))
 mondoHp$DB <- gsub("Orphanet","ORPHA",mondoHp$DB)
 table(mondoHp$DB)
+table(mondoHp$id %in% gsub(".*:","",entryId$id))
 
 #######################################
 crossId$id1 <- gsub(".*:","",crossId$id1)
