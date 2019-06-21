@@ -214,7 +214,7 @@ head(crossId)
 crossId <- crossId[grep(paste("http","url","Wikidata",sep = "|"),crossId$id2,invert = T),]
 table(gsub(":.*","",crossId$id2))
 
-crossId$id2 <- gsub("MEDGEN","MedGen",crossId$id2)
+crossId$id2 <- gsub("MEDGEN","UMLS",crossId$id2)
 crossId$id2 <- gsub("MESH","MeSH",crossId$id2)
 crossId$id2 <- gsub("ORDO","ORPHA",crossId$id2)
 crossId$id2 <- gsub("\\bNCI\\b","NCIt",crossId$id2)
@@ -355,7 +355,9 @@ mondoHp <- mutate(mondoHp,
                   hp = object) %>%
   select(DB, id, hp) %>%
   filter(grepl("HP", hp))
-  
+mondoHp$DB <- gsub("Orphanet","ORPHA",mondoHp$DB)
+table(mondoHp$DB)
+
 #######################################
 crossId$id1 <- gsub(".*:","",crossId$id1)
 crossId$id2 <- gsub(".*:","",crossId$id2)
