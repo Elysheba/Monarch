@@ -342,9 +342,44 @@ table(parentId$parent %in% entryId$id)
 ## "Phenome" not in entryId --> OK
 parentId[!(parentId$parent %in% entryId$id),]
 
-# parentId <- parentId[which(parentId$id %in% entryId$id & parentId$parent %in% entryId$id),]
-# parentId <- parentId[parentId$id %in% nodesJson$id,]
-# parentId <- parentId[parentId$parent %in% nodesJson$id,]
+## Add levels
+getAncestors <- function(id){
+  direct <- termParents[[id]]
+  parents <- direct
+  level <- 0
+  dLev <- c()
+  for(d in direct){
+    dPar <- getAncestors(d)
+    dLev <- c(dLev, dPar$level)
+    parents <- c(parents, dPar$parents)
+  }
+  if(length(dLev)>0){
+    level <- max(dLev)+1
+  }
+  return(list(parents=unique(parents), level=level))
+}
+
+
+parentList <- unstack(parentId, parent~id)
+termParents <- parentList
+library(BiocParallel)
+bpparam <- MulticoreParam(workers = 30)
+
+
+termAncestors <- bplapply(
+  parentId$id,
+  getAncestors,
+  BPPARAM = bpparam
+)
+names(termAncestors) <- parentId$id
+
+
+entryId <- entryId %>%
+  mutate(
+    level=unlist(lapply(termAncestors, function(x) x$level))[entryId$id]
+  ) %>%
+  mutate(level = case_when(is.na(level) ~ 0,
+                           TRUE ~ level))
 
 ######################################
 ## Mondo to Phenotype
@@ -372,7 +407,7 @@ mondoHp$hp <- gsub(".*:", "", mondoHp$hp)
 Monarch_idNames <- idNames[,c("DB","id","syn","canonical")]
 Monarch_parentId <- parentId[,c("DB","id","pDB","parent")]
 Monarch_crossId <- crossId[,c("DB1","id1","DB2","id2")]
-Monarch_entryId <- entryId[,c("DB","id","def")]
+Monarch_entryId <- entryId[,c("DB","id","def","level")]
 Monarch_hp <- mondoHp[,c("DB","id","hp")]
 
 ############################
