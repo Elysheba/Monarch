@@ -323,6 +323,12 @@ idNames[which(nc == 1),]
 ## All idnames in entryid
 table(idNames$id %in% entryId$id)
 
+## Not every ID has a definition available, in this case, the canonical label will be used
+tmp <- idNames %>% filter(canonical)
+entryId <- entryId %>% 
+  mutate(def = case_when(is.na(def) ~ tmp$syn[match(id,tmp$id)],
+                         TRUE ~ def))
+
 ######################################
 ## parentId
 parentId <- edgesJson[which(edgesJson$obj %in% disease$descendants),c("sub","obj")]
@@ -335,6 +341,7 @@ grep("#",parentId$obj,value = T)
 names(parentId) <- c("id","parent")
 parentId$DB <- gsub(":.*","",parentId$id)
 parentId$pDB <- gsub(":.*","",parentId$parent)
+parentId$origin <- "MONDO"
 
 ## all parentId in entryId
 table(parentId$id %in% entryId$id)
@@ -405,7 +412,7 @@ mondoHp$hp <- gsub(".*:", "", mondoHp$hp)
 
 ############################
 Monarch_idNames <- idNames[,c("DB","id","syn","canonical")]
-Monarch_parentId <- parentId[,c("DB","id","pDB","parent")]
+Monarch_parentId <- parentId[,c("DB","id","pDB","parent","origin")]
 Monarch_crossId <- crossId[,c("DB1","id1","DB2","id2")]
 Monarch_entryId <- entryId[,c("DB","id","def","level")]
 Monarch_hp <- mondoHp[,c("DB","id","hp")]
@@ -434,4 +441,4 @@ writeLastUpdate()
 
 ##############################################################
 ## Check model
-source("../../00-Utils/autoCheckModel.R")
+# source("../../00-Utils/autoCheckModel.R")
