@@ -400,6 +400,10 @@ mondoHp <- mutate(mondoHp,
 mondoHp$DB <- gsub("Orphanet","ORPHA",mondoHp$DB)
 table(mondoHp$DB)
 table(mondoHp$id %in% gsub(".*:","",entryId$id))
+## Many HP terms are linked to terms related to disease susceptibility and not the disease itself. 
+## There are removed from the set
+mondoHp <- filter(mondoHp,
+                  id %in% gsub(".*:","",entryId$id))
 
 #######################################
 crossId$id1 <- gsub(".*:","",crossId$id1)
