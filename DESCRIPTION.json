@@ -2,7 +2,7 @@
 	"name": "Monarch",
 	"title": "Data extracted from the Monarch database",
 	"description": "The goal of the Monarch Initiative is to integrate, align, and re-distribute cross-species gene, genotype, variant, disease, and phenotype information.",
-	"reference URL": "https://monarchinitiative.org/",
+	"reference URL": "https://monarchinitiative.org/ https://mondo.monarchinitiative.org/",
 	"version": "0.2",
 	"source files": [
 		{

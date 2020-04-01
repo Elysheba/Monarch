@@ -1,21 +1,21 @@
 rm(list = ls())
 gc()
-
-collectOntology <- function(database = c()){
-  if(!all(database %in% listDB()$db)){
-    stop('database not in DOD, use listDB() to check')
-  }
-  if(length(database) >1){
-    stop("When providing a (list of) ids only one database can be used")
-  }
-  q <- sprintf('{q(func:eq(type,"database")) @filter(eq(name, /%s/i)){~is_in{name}}}', database)
-  # q <- sprintf('{q(func:regexp(name,/%s/i)) @filter(eq(type, "disease") OR eq(type, "phenotype")){name}}', database)
-  q <- paste(q,collapse="\n")
-  rq <- dodCall(dgraphRequest,postText = q)
-  ids <- unlist(rq$result$data$q)
-  ##
-  return(buildDisNet(ids = ids, seed = ids))
-}
+# 
+# collectOntology <- function(database = c()){
+#   if(!all(database %in% listDB()$db)){
+#     stop('database not in DOD, use listDB() to check')
+#   }
+#   if(length(database) >1){
+#     stop("When providing a (list of) ids only one database can be used")
+#   }
+#   q <- sprintf('{q(func:eq(type,"database")) @filter(eq(name, /%s/i)){~is_in{name}}}', database)
+#   # q <- sprintf('{q(func:regexp(name,/%s/i)) @filter(eq(type, "disease") OR eq(type, "phenotype")){name}}', database)
+#   q <- paste(q,collapse="\n")
+#   rq <- dodCall(dgraphRequest,postText = q)
+#   ids <- unlist(rq$result$data$q)
+#   ##
+#   return(buildDisNet(ids = ids, seed = ids))
+# }
 
 setwd("~/Shared/Data-Science/Data-Source-Model-Repository/Monarch/scripts/")
 source("../../00-Utils/writeLastUpdate.R")
@@ -27,10 +27,11 @@ library(tibble)
 library(dplyr)
 library(readr)
 library(here)
+library(ReDaMoR)
 # library(stringr)
 # library(rdflib)
 # library(redland)
-source("../../00-Utils/df2rdf.R")
+# source("../../00-Utils/df2rdf.R")
 
 ##
 mc.cores <- 55
@@ -38,9 +39,15 @@ sdir <- "../sources"
 ddir <- "../data"
 
 ###############################################################################@
+## Data model ----
+###############################################################################@
+# load(here("model", "Monarch.rda"))
+# dm <- model_relational_data(dm)
+# save(dm, file = here("model", "Monarch.rda"))
+
+###############################################################################@
 ## Source information ----
 ###############################################################################@
-
 sfi <- read.table(
    file.path(sdir, "ARCHIVES/ARCHIVES.txt"),
    sep="\t",
@@ -135,7 +142,6 @@ dim(edgesJson)
 "MONDO:0000001" %in% disease$descendants
 
 # rm <- c("MONDO_0024571","MONDO_0021125","MONDO_0021007")
-
 edgesJson$obj <- gsub("NCIT","NCIt",edgesJson$obj)
 edgesJson$sub <- gsub("NCIT","NCIt",edgesJson$sub)
 table(gsub(":.*","",edgesJson$obj))
@@ -441,7 +447,6 @@ for(f in toSave){
     qmethod = "double"
   )
 }
-writeLastUpdate()
 
 ##############################################################
 ## Check model
