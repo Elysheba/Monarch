@@ -200,16 +200,16 @@ dim(toCheck)
 ## check wrong IDs, remove weird ones still
 table(toCheck$DB2)
 table(toCheck$DB1)
-toCheck[toCheck$DB2 == "CSP",]
-toCheck[toCheck$DB2 == "https",]
-toCheck[toCheck$DB2 == "ICD10",]
-toCheck[toCheck$DB2 == "ICD9",]
-toCheck[toCheck$DB2 == "MESH",]
-toCheck[toCheck$DB2 == "UMLS",]
-toCheck[toCheck$DB2 == "Wikipedia",]
-toCheck[toCheck$DB2 == "ONCOTREE",]
-toCheck[toCheck$DB2 == "Orphanet",]
-toCheck[toCheck$DB2 == "SCTID",]
+# toCheck[toCheck$DB2 == "CSP",]
+# toCheck[toCheck$DB2 == "https",]
+# toCheck[toCheck$DB2 == "ICD10",]
+# toCheck[toCheck$DB2 == "ICD9",]
+# toCheck[toCheck$DB2 == "MESH",]
+# toCheck[toCheck$DB2 == "UMLS",]
+# toCheck[toCheck$DB2 == "Wikipedia",]
+# toCheck[toCheck$DB2 == "ONCOTREE",]
+# toCheck[toCheck$DB2 == "Orphanet",]
+# toCheck[toCheck$DB2 == "SCTID",]
 
 table(toKeep$DB2)
 table(toKeep$DB1)
@@ -217,7 +217,7 @@ crossId <- setNames(toKeep[,c("dbid1","dbid2")],c("id1","id2"))
 dim(crossId)
 head(crossId)
 
-crossId <- crossId[grep(paste("http","url","Wikidata",sep = "|"),crossId$id2,invert = T),]
+crossId <- crossId[grep(paste("http","url","Wikidata","Reactome", sep = "|"),crossId$id2,invert = T),]
 table(gsub(":.*","",crossId$id2))
 
 crossId$id2 <- gsub("MEDGEN","UMLS",crossId$id2)
