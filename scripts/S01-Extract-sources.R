@@ -1,9 +1,8 @@
-setwd("~/Shared/Data-Science/Data-Source-Model-Repository/Monarch/scripts/")
-
+library(here)
 library(RJSONIO)
-source("../../00-Utils/downloadSourceFiles.R")
+source(here("../00-Utils/downloadSourceFiles.R"))
 
-desc <- readJSONStream("../DESCRIPTION.json")
+desc <- readJSONStream(here("DESCRIPTION.json"))
 
 sourceFiles <- desc$"source files"
 urls <- unlist(lapply(
@@ -18,6 +17,6 @@ urls <- unlist(lapply(
 #    urls["mondo.owln"],
 #    format(Sys.Date(), "%Y-%m")
 # )
-srcDir <- "../sources"
+srcDir <- here("sources")
 
 downloadSourceFiles(urls, srcDir, httpForce = T)

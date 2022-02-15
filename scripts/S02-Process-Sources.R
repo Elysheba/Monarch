@@ -17,8 +17,7 @@ gc()
 #   return(buildDisNet(ids = ids, seed = ids))
 # }
 
-setwd("~/Shared/Data-Science/Data-Source-Model-Repository/Monarch/scripts/")
-source("../../00-Utils/writeLastUpdate.R")
+
 library(XML)
 library(parallel)
 library(jsonlite)
@@ -35,8 +34,8 @@ library(ReDaMoR)
 
 ##
 mc.cores <- 55
-sdir <- "../sources"
-ddir <- "../data"
+sdir <- here("sources")
+ddir <- here("data")
 
 ###############################################################################@
 ## Data model ----
@@ -396,7 +395,8 @@ entryId <- entryId %>%
 
 ######################################
 ## Mondo to Phenotype
-mondoHp <- read_tsv(here("sources","disease_phenotype.all.tsv"), col_names = T, col_types = cols(.default = "c")) 
+mondoHp <- read_tsv(here("sources","disease_phenotype.all.tsv"), col_names = T, 
+                    col_types = cols(.default = "c")) 
 mondoHp <- mutate(mondoHp,
                   DB = gsub(":.*","", subject),
                   id = gsub(".*:","", subject),
